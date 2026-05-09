@@ -245,10 +245,11 @@ const CleanupCard = (function () {
         DriveService.deletePermission(fileId, permissionId);
         result.ok.push({ fileId: fileId, permissionId: permissionId });
       } catch (e) {
+        try { console.error('Revoke failed', fileId, permissionId, e && e.message); } catch (_) {}
         result.failed.push({
           fileId: fileId,
           permissionId: permissionId,
-          message: e && e.message ? e.message : String(e)
+          message: Formatters.friendlyError(e)
         });
       }
     });
@@ -282,11 +283,17 @@ const CleanupCard = (function () {
     card.addSection(summary);
 
     if (result.failed.length > 0) {
-      const fails = CardService.newCardSection().setHeader('Failures');
+      const fails = CardService.newCardSection().setHeader("Items that couldn't be revoked");
       result.failed.forEach(function (f) {
+        let displayName = 'Item';
+        try {
+          const file = DriveService.getFile(f.fileId);
+          if (file && file.name) displayName = file.name;
+        } catch (_) {}
+
         fails.addWidget(CardService.newDecoratedText()
           .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.STAR))
-          .setText(f.fileId)
+          .setText(Formatters.escapeHtml(displayName))
           .setBottomLabel(f.message)
           .setWrapText(true));
       });

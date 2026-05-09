@@ -132,6 +132,7 @@ const Cards = (function () {
 
   /**
    * Generic error card shown when Drive API throws.
+   * Technical detail is sent to Stackdriver, never to the user.
    */
   function buildErrorCard(err) {
     const card = CardService.newCardBuilder()
@@ -142,10 +143,10 @@ const Cards = (function () {
 
     const section = CardService.newCardSection();
     section.addWidget(CardService.newTextParagraph()
-      .setText('We could not load this item. This usually means the file was deleted, you lost access, or DriveClarity needs to be reauthorized.'));
+      .setText(Formatters.escapeHtml(Formatters.friendlyError(err))));
 
     section.addWidget(CardService.newTextParagraph()
-      .setText('<font color="#888">Details: ' + (err && err.message ? Formatters.escapeHtml(err.message) : 'unknown error') + '</font>'));
+      .setText('<font color="#888">If this keeps happening, try reopening DriveClarity or selecting the file again.</font>'));
 
     card.addSection(section);
     return card.build();

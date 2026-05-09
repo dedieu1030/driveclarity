@@ -126,6 +126,28 @@ const Formatters = (function () {
       .replace(/>/g, '&gt;');
   }
 
+  /**
+   * Translate an Apps Script / Drive API error into a calm, non-technical
+   * message safe to display to end-users. The raw error stays in
+   * Stackdriver via console.error for debugging.
+   */
+  function friendlyError(err) {
+    const msg = (err && (err.message || err.toString())) || '';
+    try { console.error('DriveClarity error:', msg); } catch (_) {}
+
+    if (/sufficient permissions/i.test(msg))                   return "You don't have permission to view this item's sharing settings.";
+    if (/insufficientFilePermissions/i.test(msg))              return "You don't have edit access to this item.";
+    if (/cannotModifyInheritedTeamDrivePermission/i.test(msg)) return "Inherited permissions can't be removed here. Adjust the parent folder instead.";
+    if (/notFound|File not found/i.test(msg))                  return "This item no longer exists or has been moved.";
+    if (/sharingRateLimitExceeded/i.test(msg))                 return "Too many sharing changes at once. Please try again in a moment.";
+    if (/Rate Limit Exceeded|userRateLimitExceeded|quota/i.test(msg)) return "Too many requests. Please try again in a moment.";
+    if (/Forbidden|forbidden/i.test(msg))                      return "You don't have permission for this action.";
+    if (/Authorization|unauthorized/i.test(msg))               return "DriveClarity needs to be reauthorized.";
+    if (/Invalid field selection/i.test(msg))                  return "Something went wrong reading this item.";
+    if (/timeout|timed out/i.test(msg))                        return "The request took too long. Try again with a smaller selection.";
+    return "Something went wrong. Please try again.";
+  }
+
   function pluralize(n, singular, plural) {
     return n + ' ' + (n === 1 ? singular : (plural || singular + 's'));
   }
@@ -159,6 +181,7 @@ const Formatters = (function () {
     displayPrincipal: displayPrincipal,
     principalSubtitle: principalSubtitle,
     escapeHtml: escapeHtml,
+    friendlyError: friendlyError,
     pluralize: pluralize,
     avatarFor: avatarFor
   };

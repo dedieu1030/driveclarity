@@ -104,7 +104,7 @@ function actionExportAuditCsv(e) {
   } catch (err) {
     return CardService.newActionResponseBuilder()
       .setNotification(CardService.newNotification()
-        .setText('Export failed: ' + err.message))
+        .setText(Formatters.friendlyError(err)))
       .build();
   }
 }
