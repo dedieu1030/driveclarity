@@ -1,12 +1,18 @@
 /**
- * CleanupCard.gs — Section 3: Cleanup.
+ * CleanupCard.gs — Drive homepage: user-centric cleanup workflow.
  *
- * Provides:
- *   - addSections(builder, file, state)            : main cleanup view
- *   - buildFooter(fileId, state)                   : conditional sticky footer
- *   - buildConfirmRevokeCard(fileId, target, ids)  : pushed confirmation card
- *   - executeRevoke(ids, target)                   : performs Permissions.delete
- *   - buildResultReport(fileId, target, result)    : pushed result summary
+ * This module powers the DriveClarity homepage card (no file selected).
+ * The flow is intentionally user-centric: the user is searched first, then
+ * all permissions they have on files owned by the current user are listed
+ * and can be bulk-revoked.
+ *
+ * Public API:
+ *   - addHomepageSections(builder, state)       : main homepage view
+ *   - buildHomepageFooter(state)                : conditional sticky footer
+ *   - buildConfirmRevokeCard(target, ids)       : pushed confirmation card
+ *   - executeRevoke(ids, target)                : performs Permissions.delete
+ *   - buildResultReport(target, result)         : pushed result summary
+ *   - findFilesAccessibleBy(target)             : Drive scan by email/name
  *
  * Search strategy:
  *   We list files owned by the current user (Drive doesn't expose a "all
@@ -19,28 +25,32 @@ const CleanupCard = (function () {
 
   const MAX_SEARCH_FILES = 50;
 
-  function addSections(builder, file, state) {
+  // ─── Homepage layout ───────────────────────────────────────────────────
+
+  function addHomepageSections(builder, state) {
     state = state || {};
 
-    builder.addSection(buildSearchSection(file.id, state));
+    builder.addSection(buildSearchSection(state));
 
     if (state.cleanupTarget) {
       const matches = findFilesAccessibleBy(state.cleanupTarget);
       builder.addSection(buildResultsHeader(state.cleanupTarget, matches));
       if (matches.length > 0) {
-        builder.addSection(buildResultsList(file.id, state, matches));
+        builder.addSection(buildResultsList(state, matches));
       }
     } else {
       const help = CardService.newCardSection().setHeader('How it works');
       help.addWidget(CardService.newTextParagraph()
-        .setText('Search for a departing employee by email. DriveClarity scans files you own and lists everywhere they have access, so you can revoke in bulk.'));
+        .setText('1. Enter the email of a person (e.g. a departing employee).<br>2. DriveClarity scans files you own and lists everywhere they have access.<br>3. Select items and revoke in bulk.'));
+      help.addWidget(CardService.newTextParagraph()
+        .setText('<font color="#888">Inherited and group-based access cannot be revoked here and will need manual review.</font>'));
       builder.addSection(help);
     }
   }
 
   // ─── Search section ────────────────────────────────────────────────────
 
-  function buildSearchSection(fileId, state) {
+  function buildSearchSection(state) {
     const section = CardService.newCardSection().setHeader('Find a user');
 
     const input = CardService.newTextInput()
@@ -57,8 +67,7 @@ const CleanupCard = (function () {
       .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
       .setBackgroundColor(Formatters.COLORS.brand)
       .setOnClickAction(CardService.newAction()
-        .setFunctionName('actionRunCleanupSearch')
-        .setParameters({ fileId: fileId })));
+        .setFunctionName('actionRunCleanupSearch')));
 
     return section;
   }
@@ -88,10 +97,27 @@ const CleanupCard = (function () {
                     + direct + ' direct · ' + group + ' group · ' + inherited + ' inherited')
       .setWrapText(true));
 
+    section.addWidget(CardService.newButtonSet()
+      .addButton(CardService.newTextButton()
+        .setText('Select all')
+        .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+        .setOnClickAction(CardService.newAction()
+          .setFunctionName('actionSelectAllCleanup')
+          .setParameters({
+            cleanupTarget: target,
+            allItems: matches.map(function (m) { return m.fileId + ':' + m.permissionId; }).join(',')
+          })))
+      .addButton(CardService.newTextButton()
+        .setText('Clear')
+        .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+        .setOnClickAction(CardService.newAction()
+          .setFunctionName('actionClearCleanupSelection')
+          .setParameters({ cleanupTarget: target }))));
+
     return section;
   }
 
-  function buildResultsList(fileId, state, matches) {
+  function buildResultsList(state, matches) {
     const section = CardService.newCardSection().setHeader('Items with access');
     const selected = new Set((state.cleanupSelected || '').split(',').filter(Boolean));
 
@@ -105,7 +131,6 @@ const CleanupCard = (function () {
         .setOnChangeAction(CardService.newAction()
           .setFunctionName('actionToggleCleanupItem')
           .setParameters({
-            fileId: fileId,
             itemId: itemKey,
             cleanupTarget: state.cleanupTarget,
             selected: state.cleanupSelected || ''
@@ -126,7 +151,7 @@ const CleanupCard = (function () {
 
   // ─── Footer ────────────────────────────────────────────────────────────
 
-  function buildFooter(fileId, state) {
+  function buildHomepageFooter(state) {
     state = state || {};
     const selectedIds = (state.cleanupSelected || '').split(',').filter(Boolean);
     if (!state.cleanupTarget || selectedIds.length === 0) return null;
@@ -139,24 +164,20 @@ const CleanupCard = (function () {
         .setOnClickAction(CardService.newAction()
           .setFunctionName('actionConfirmRevoke')
           .setParameters({
-            fileId: fileId,
             cleanupTarget: state.cleanupTarget,
             cleanupSelected: state.cleanupSelected
           })))
       .setSecondaryButton(CardService.newTextButton()
-        .setText('Clear')
+        .setText('Cancel')
         .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
         .setOnClickAction(CardService.newAction()
           .setFunctionName('actionClearCleanupSelection')
-          .setParameters({
-            fileId: fileId,
-            cleanupTarget: state.cleanupTarget
-          })));
+          .setParameters({ cleanupTarget: state.cleanupTarget })));
   }
 
-  // ─── Confirmation card ─────────────────────────────────────────────────
+  // ─── Confirmation card (pushed) ────────────────────────────────────────
 
-  function buildConfirmRevokeCard(fileId, target, selectedCsv) {
+  function buildConfirmRevokeCard(target, selectedCsv) {
     const ids = (selectedCsv || '').split(',').filter(Boolean);
     const card = CardService.newCardBuilder()
       .setName('CleanupConfirm')
@@ -185,7 +206,6 @@ const CleanupCard = (function () {
         .setOnClickAction(CardService.newAction()
           .setFunctionName('actionExecuteRevoke')
           .setParameters({
-            fileId: fileId,
             cleanupTarget: target,
             cleanupSelected: selectedCsv
           })))
@@ -193,8 +213,8 @@ const CleanupCard = (function () {
         .setText('Cancel')
         .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
         .setOnClickAction(CardService.newAction()
-          .setFunctionName('actionSwitchSection')
-          .setParameters({ fileId: fileId, section: 'cleanup' }))));
+          .setFunctionName('actionOpenHomepage')
+          .setParameters({ cleanupTarget: target }))));
 
     return card.build();
   }
@@ -227,9 +247,9 @@ const CleanupCard = (function () {
     return result;
   }
 
-  // ─── Result report card ────────────────────────────────────────────────
+  // ─── Result report card (pushed) ───────────────────────────────────────
 
-  function buildResultReport(fileId, target, result) {
+  function buildResultReport(target, result) {
     const card = CardService.newCardBuilder()
       .setName('CleanupResult')
       .setHeader(CardService.newCardHeader()
@@ -270,13 +290,12 @@ const CleanupCard = (function () {
         .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
         .setBackgroundColor(Formatters.COLORS.brand)
         .setOnClickAction(CardService.newAction()
-          .setFunctionName('actionSwitchSection')
-          .setParameters({ fileId: fileId, section: 'cleanup' }))));
+          .setFunctionName('actionOpenHomepage'))));
 
     return card.build();
   }
 
-  // ─── Search ────────────────────────────────────────────────────────────
+  // ─── Search engine ─────────────────────────────────────────────────────
 
   /**
    * Find files owned by the current user where the given user has a
@@ -327,8 +346,8 @@ const CleanupCard = (function () {
   }
 
   return {
-    addSections: addSections,
-    buildFooter: buildFooter,
+    addHomepageSections: addHomepageSections,
+    buildHomepageFooter: buildHomepageFooter,
     buildConfirmRevokeCard: buildConfirmRevokeCard,
     executeRevoke: executeRevoke,
     buildResultReport: buildResultReport,

@@ -1,45 +1,26 @@
 /**
  * DriveClarity — entry triggers and global action callbacks.
  *
- * This file is loaded first by Apps Script. Every function exposed here is
- * either a manifest trigger (declared in appsscript.json) or an action
- * callback referenced by name from a CardService Action.
- *
- * Keep this file minimal: real building logic lives in Cards.gs and the
- * section-specific *Card.gs files. Service layer lives in DriveService.gs
- * and PermissionAnalyzer.gs.
+ * Architecture:
+ *   - Drive homepage (no file selected) → Cards.buildHomepageCard (user-search + bulk revoke)
+ *   - Drive contextual (file selected)  → Cards.buildMainCard with Access + Audit tabs
  */
 
 // ─── Manifest triggers ──────────────────────────────────────────────────────
 
-/**
- * Common homepage trigger.
- * Used as a fallback when the add-on is opened outside Drive (rare for this
- * product since we only declare the Drive surface).
- */
 function onHomepage(e) {
-  return Cards.buildEmptyStateCard('Open DriveClarity from inside Google Drive to inspect a file or folder.');
+  return Cards.buildHomepageCard({});
 }
 
-/**
- * Drive homepage trigger.
- * Fired when the user clicks the DriveClarity icon in the Drive side rail
- * with no file selected.
- */
 function onDriveHomepage(e) {
-  return Cards.buildEmptyStateCard('Select a file or folder in Drive to see who can access it.');
+  return Cards.buildHomepageCard({});
 }
 
-/**
- * Drive contextual trigger.
- * Fired when the user has one or more items selected in Drive and clicks
- * the DriveClarity icon (or selects items while DriveClarity is open).
- */
 function onItemsSelected(e) {
   try {
     const items = (e && e.drive && e.drive.selectedItems) || [];
     if (items.length === 0) {
-      return Cards.buildEmptyStateCard('Select a file or folder in Drive to see who can access it.');
+      return Cards.buildHomepageCard({});
     }
     const fileId = items[0].id;
     return Cards.buildMainCard(fileId, 'access');
@@ -48,12 +29,10 @@ function onItemsSelected(e) {
   }
 }
 
-// ─── Action callbacks (referenced by name from CardService Actions) ──────────
+// ─── Action callbacks ───────────────────────────────────────────────────────
 
 /**
- * Switch the active section (Access / Audit / Cleanup) without leaving the
- * card. Uses Navigation.updateCard for an in-place rebuild — feels like
- * tab switching to the user.
+ * Switch tabs inside the file-context card (Access ↔ Audit).
  */
 function actionSwitchSection(e) {
   const params = e.commonEventObject.parameters || {};
@@ -66,8 +45,7 @@ function actionSwitchSection(e) {
 }
 
 /**
- * Toggle a collapsible "Why they have access" explanation row.
- * State is encoded in action parameters since CardService is stateless.
+ * Toggle the "Why they have access" explanations block.
  */
 function actionToggleExplanation(e) {
   const params = e.commonEventObject.parameters || {};
@@ -111,86 +89,6 @@ function actionOpenInvestigation(e) {
 }
 
 /**
- * Run the Cleanup search for a given email and rebuild the section.
- */
-function actionRunCleanupSearch(e) {
-  const formInputs = (e.commonEventObject && e.commonEventObject.formInputs) || {};
-  const params = e.commonEventObject.parameters || {};
-  const fileId = params.fileId;
-  const target = (formInputs.cleanup_search && formInputs.cleanup_search.stringInputs.value[0]) || '';
-  const card = Cards.buildMainCard(fileId, 'cleanup', { cleanupTarget: target.trim() });
-  return CardService.newActionResponseBuilder()
-    .setNavigation(CardService.newNavigation().updateCard(card))
-    .build();
-}
-
-/**
- * Toggle a single item in the Cleanup selection set.
- */
-function actionToggleCleanupItem(e) {
-  const params = e.commonEventObject.parameters || {};
-  const fileId = params.fileId;
-  const cleanupTarget = params.cleanupTarget || '';
-  const selected = new Set((params.selected || '').split(',').filter(Boolean));
-  const itemId = params.itemId;
-  if (selected.has(itemId)) {
-    selected.delete(itemId);
-  } else {
-    selected.add(itemId);
-  }
-  const card = Cards.buildMainCard(fileId, 'cleanup', {
-    cleanupTarget: cleanupTarget,
-    cleanupSelected: Array.from(selected).join(',')
-  });
-  return CardService.newActionResponseBuilder()
-    .setNavigation(CardService.newNavigation().updateCard(card))
-    .build();
-}
-
-/**
- * Clear the entire Cleanup selection set.
- */
-function actionClearCleanupSelection(e) {
-  const params = e.commonEventObject.parameters || {};
-  const card = Cards.buildMainCard(params.fileId, 'cleanup', {
-    cleanupTarget: params.cleanupTarget || '',
-    cleanupSelected: ''
-  });
-  return CardService.newActionResponseBuilder()
-    .setNavigation(CardService.newNavigation().updateCard(card))
-    .build();
-}
-
-/**
- * Push the irreversible-action confirmation card before bulk revoke.
- */
-function actionConfirmRevoke(e) {
-  const params = e.commonEventObject.parameters || {};
-  const card = CleanupCard.buildConfirmRevokeCard(
-    params.fileId,
-    params.cleanupTarget,
-    params.cleanupSelected
-  );
-  return CardService.newActionResponseBuilder()
-    .setNavigation(CardService.newNavigation().pushCard(card))
-    .build();
-}
-
-/**
- * Execute the bulk revoke and show the result report card.
- */
-function actionExecuteRevoke(e) {
-  const params = e.commonEventObject.parameters || {};
-  const ids = (params.cleanupSelected || '').split(',').filter(Boolean);
-  const target = params.cleanupTarget;
-  const result = CleanupCard.executeRevoke(ids, target);
-  const card = CleanupCard.buildResultReport(params.fileId, target, result);
-  return CardService.newActionResponseBuilder()
-    .setNavigation(CardService.newNavigation().pushCard(card))
-    .build();
-}
-
-/**
  * Trigger an Audit CSV export to the user's Drive root.
  */
 function actionExportAuditCsv(e) {
@@ -209,4 +107,106 @@ function actionExportAuditCsv(e) {
         .setText('Export failed: ' + err.message))
       .build();
   }
+}
+
+// ─── Homepage / Cleanup callbacks ──────────────────────────────────────────
+
+/**
+ * Pop card stack back to the homepage (the user-search view).
+ */
+function actionOpenHomepage(e) {
+  const params = (e && e.commonEventObject && e.commonEventObject.parameters) || {};
+  const card = Cards.buildHomepageCard({
+    cleanupTarget: params.cleanupTarget || ''
+  });
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().popToRoot().updateCard(card))
+    .build();
+}
+
+/**
+ * Run the homepage user search.
+ */
+function actionRunCleanupSearch(e) {
+  const formInputs = (e.commonEventObject && e.commonEventObject.formInputs) || {};
+  const target = (formInputs.cleanup_search && formInputs.cleanup_search.stringInputs.value[0]) || '';
+  const card = Cards.buildHomepageCard({ cleanupTarget: target.trim() });
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().updateCard(card))
+    .build();
+}
+
+/**
+ * Toggle a single item in the homepage selection set.
+ */
+function actionToggleCleanupItem(e) {
+  const params = e.commonEventObject.parameters || {};
+  const cleanupTarget = params.cleanupTarget || '';
+  const selected = new Set((params.selected || '').split(',').filter(Boolean));
+  const itemId = params.itemId;
+  if (selected.has(itemId)) {
+    selected.delete(itemId);
+  } else {
+    selected.add(itemId);
+  }
+  const card = Cards.buildHomepageCard({
+    cleanupTarget: cleanupTarget,
+    cleanupSelected: Array.from(selected).join(',')
+  });
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().updateCard(card))
+    .build();
+}
+
+/**
+ * Select all items currently in the result list.
+ */
+function actionSelectAllCleanup(e) {
+  const params = e.commonEventObject.parameters || {};
+  const card = Cards.buildHomepageCard({
+    cleanupTarget: params.cleanupTarget || '',
+    cleanupSelected: params.allItems || ''
+  });
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().updateCard(card))
+    .build();
+}
+
+/**
+ * Clear the entire homepage selection set.
+ */
+function actionClearCleanupSelection(e) {
+  const params = e.commonEventObject.parameters || {};
+  const card = Cards.buildHomepageCard({
+    cleanupTarget: params.cleanupTarget || '',
+    cleanupSelected: ''
+  });
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().updateCard(card))
+    .build();
+}
+
+/**
+ * Push the irreversible-action confirmation card.
+ */
+function actionConfirmRevoke(e) {
+  const params = e.commonEventObject.parameters || {};
+  const card = CleanupCard.buildConfirmRevokeCard(params.cleanupTarget, params.cleanupSelected);
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().pushCard(card))
+    .build();
+}
+
+/**
+ * Execute the bulk revoke and show the result report card.
+ */
+function actionExecuteRevoke(e) {
+  const params = e.commonEventObject.parameters || {};
+  const ids = (params.cleanupSelected || '').split(',').filter(Boolean);
+  const target = params.cleanupTarget;
+  const result = CleanupCard.executeRevoke(ids, target);
+  const card = CleanupCard.buildResultReport(target, result);
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().pushCard(card))
+    .build();
 }

@@ -14,9 +14,9 @@ const Cards = (function () {
   // ─── Public ─────────────────────────────────────────────────────────────
 
   /**
-   * Build the main contextual card.
+   * Build the main contextual card (file selected).
    * @param {string} fileId          Drive file ID currently selected.
-   * @param {string} activeSection   'access' | 'audit' | 'cleanup'
+   * @param {string} activeSection   'access' | 'audit'
    * @param {object} state           Optional UI state to thread through.
    */
   function buildMainCard(fileId, activeSection, state) {
@@ -41,13 +41,50 @@ const Cards = (function () {
     } else if (activeSection === 'audit') {
       AuditCard.addSections(builder, file, state);
       builder.setFixedFooter(buildAuditFooter(file.id));
-    } else if (activeSection === 'cleanup') {
-      CleanupCard.addSections(builder, file, state);
-      const footer = CleanupCard.buildFooter(file.id, state);
-      if (footer) builder.setFixedFooter(footer);
     }
 
+    builder.addSection(buildManageUsersSection());
+
     return builder.build();
+  }
+
+  /**
+   * Build the Drive homepage card (no file selected).
+   * Centred on the user-search + bulk-revoke flow, since this workflow is
+   * inherently user-centric, not file-centric.
+   */
+  function buildHomepageCard(state) {
+    state = state || {};
+    const builder = CardService.newCardBuilder()
+      .setName('DriveClarityHome')
+      .setHeader(CardService.newCardHeader()
+        .setTitle('DriveClarity')
+        .setSubtitle('Manage user access across your files')
+        .setImageUrl('https://www.gstatic.com/images/icons/material/system/2x/folder_shared_grey600_48dp.png')
+        .setImageStyle(CardService.ImageStyle.SQUARE));
+
+    CleanupCard.addHomepageSections(builder, state);
+
+    const footer = CleanupCard.buildHomepageFooter(state);
+    if (footer) builder.setFixedFooter(footer);
+
+    return builder.build();
+  }
+
+  /**
+   * Small CTA inside the file-context card that takes the user back to the
+   * homepage where the user-search + revoke flow lives.
+   */
+  function buildManageUsersSection() {
+    const section = CardService.newCardSection();
+    section.addWidget(CardService.newDecoratedText()
+      .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.MULTIPLE_PEOPLE))
+      .setText('Manage user access')
+      .setBottomLabel('Search a person and revoke their access to all your files.')
+      .setWrapText(true)
+      .setOnClickAction(CardService.newAction()
+        .setFunctionName('actionOpenHomepage')));
+    return section;
   }
 
   /**
@@ -137,9 +174,8 @@ const Cards = (function () {
     const buttonSet = CardService.newButtonSet();
 
     [
-      { id: 'access',  label: 'Access' },
-      { id: 'audit',   label: 'Audit' },
-      { id: 'cleanup', label: 'Cleanup' }
+      { id: 'access', label: 'Access' },
+      { id: 'audit',  label: 'Audit' }
     ].forEach(function (tab) {
       const btn = CardService.newTextButton()
         .setText(tab.label)
@@ -173,6 +209,7 @@ const Cards = (function () {
 
   return {
     buildMainCard: buildMainCard,
+    buildHomepageCard: buildHomepageCard,
     buildEmptyStateCard: buildEmptyStateCard,
     buildErrorCard: buildErrorCard,
     buildHeader: buildHeader,
