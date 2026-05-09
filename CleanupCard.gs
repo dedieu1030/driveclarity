@@ -23,7 +23,16 @@
 
 const CleanupCard = (function () {
 
-  const MAX_SEARCH_FILES = 50;
+  // When the input is an email, we hit the Drive search API directly with
+  // `'EMAIL' in writers/readers` and only paginate the matching files. This
+  // is dramatically faster than scanning every owned file. We still cap the
+  // result count to keep the trigger under the 30s Apps Script budget.
+  const FAST_PATH_CAP = 250;
+
+  // Name-based scan fallback (when the user types a partial name instead of
+  // an email). Drive offers no native query for non-email name matching, so
+  // we have to scan owned files and inspect permissions client-side.
+  const NAME_SCAN_CAP = 500;
 
   // ─── Homepage layout ───────────────────────────────────────────────────
 
@@ -298,35 +307,77 @@ const CleanupCard = (function () {
   // ─── Search engine ─────────────────────────────────────────────────────
 
   /**
-   * Find files owned by the current user where the given user has a
-   * non-owner permission. Returns:
-   * [{ fileId, fileName, iconLink, permissionId, role, source }]
+   * Find files where the given user has a non-owner permission.
+   *
+   * Two paths:
+   *  - Fast path (email input): Drive native query `'EMAIL' in writers/readers`,
+   *    no full-corpus scan, scoped to files where I have at least writer
+   *    access (so I can revoke them).
+   *  - Slow path (name input): scan owned files and match by displayName/email
+   *    in each permissions list (no native Drive query exists for partial
+   *    names).
+   *
+   * Returns: [{ fileId, fileName, iconLink, permissionId, role, source }]
    */
   function findFilesAccessibleBy(target) {
-    target = (target || '').toLowerCase().trim();
+    target = (target || '').trim();
     if (!target) return [];
 
+    if (looksLikeEmail(target)) {
+      return findByEmail(target.toLowerCase());
+    }
+    return findByNameScan(target.toLowerCase());
+  }
+
+  function looksLikeEmail(s) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+  }
+
+  /**
+   * Fast path: ask Drive to return only files where this email is a direct
+   * writer or reader, then look up the permission ID per match.
+   *
+   * Drive's native query expands group membership for `'EMAIL' in writers`,
+   * but we then filter on `permission.emailAddress === email` to keep only
+   * direct user permissions (the only ones we can revoke at the file level).
+   */
+  function findByEmail(email) {
     const matches = [];
+    const safeEmail = email.replace(/'/g, "\\'");
+    const q = "('" + safeEmail + "' in writers or '" + safeEmail + "' in readers) and trashed = false";
+
     let pageToken = null;
-    let scanned = 0;
+    let safety = 0;
+    let processed = 0;
 
     do {
       let res;
-      try { res = DriveService.listMyOwnedFiles(50, pageToken); }
-      catch (e) { break; }
+      try {
+        res = Drive.Files.list({
+          q: q,
+          fields: 'files(id,name,iconLink,driveId),nextPageToken',
+          pageSize: 100,
+          pageToken: pageToken || undefined,
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+          corpora: 'allDrives'
+        });
+      } catch (e) {
+        break;
+      }
 
       const files = res.files || [];
-      for (let i = 0; i < files.length && scanned < MAX_SEARCH_FILES; i++) {
+      for (let i = 0; i < files.length && processed < FAST_PATH_CAP; i++) {
         const f = files[i];
-        scanned++;
+        processed++;
+
         let perms;
         try { perms = DriveService.listPermissions(f.id); }
         catch (e) { continue; }
 
         perms.forEach(function (p) {
           if (p.deleted || p.role === 'owner') return;
-          const candidate = (p.emailAddress || p.displayName || '').toLowerCase();
-          if (candidate && candidate.indexOf(target) >= 0) {
+          if ((p.emailAddress || '').toLowerCase() === email) {
             matches.push({
               fileId: f.id,
               fileName: f.name,
@@ -340,7 +391,52 @@ const CleanupCard = (function () {
       }
 
       pageToken = res.nextPageToken;
-    } while (pageToken && scanned < MAX_SEARCH_FILES);
+      safety++;
+    } while (pageToken && safety < 10 && processed < FAST_PATH_CAP);
+
+    return matches;
+  }
+
+  /**
+   * Slow path: for partial-name searches, scan files we own and match
+   * displayName / emailAddress on each permission.
+   */
+  function findByNameScan(needle) {
+    const matches = [];
+    let pageToken = null;
+    let scanned = 0;
+
+    do {
+      let res;
+      try { res = DriveService.listMyOwnedFiles(100, pageToken); }
+      catch (e) { break; }
+
+      const files = res.files || [];
+      for (let i = 0; i < files.length && scanned < NAME_SCAN_CAP; i++) {
+        const f = files[i];
+        scanned++;
+        let perms;
+        try { perms = DriveService.listPermissions(f.id); }
+        catch (e) { continue; }
+
+        perms.forEach(function (p) {
+          if (p.deleted || p.role === 'owner') return;
+          const candidate = ((p.emailAddress || '') + ' ' + (p.displayName || '')).toLowerCase();
+          if (candidate && candidate.indexOf(needle) >= 0) {
+            matches.push({
+              fileId: f.id,
+              fileName: f.name,
+              iconLink: f.iconLink,
+              permissionId: p.id,
+              role: p.role,
+              source: PermissionAnalyzer.classifySource(p)
+            });
+          }
+        });
+      }
+
+      pageToken = res.nextPageToken;
+    } while (pageToken && scanned < NAME_SCAN_CAP);
 
     return matches;
   }
