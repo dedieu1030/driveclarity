@@ -27,7 +27,9 @@ const CleanupCard = (function () {
     if (state.cleanupTarget) {
       const matches = findFilesAccessibleBy(state.cleanupTarget);
       builder.addSection(buildResultsHeader(state.cleanupTarget, matches));
-      builder.addSection(buildResultsList(file.id, state, matches));
+      if (matches.length > 0) {
+        builder.addSection(buildResultsList(file.id, state, matches));
+      }
     } else {
       const help = CardService.newCardSection().setHeader('How it works');
       help.addWidget(CardService.newTextParagraph()

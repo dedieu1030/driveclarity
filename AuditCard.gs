@@ -211,15 +211,21 @@ const AuditCard = (function () {
     card.addSection(overview);
 
     const list = CardService.newCardSection().setHeader('All people');
-    PermissionAnalyzer.buildAccessRows(target).forEach(function (row) {
-      const p = row.permission;
-      list.addWidget(CardService.newDecoratedText()
-        .setStartIcon(Formatters.avatarFor(p))
-        .setText(Formatters.escapeHtml(Formatters.displayPrincipal(p)))
-        .setTopLabel(Formatters.principalSubtitle(p))
-        .setBottomLabel(Formatters.roleLabel(p.role) + ' · ' + row.sourceLabel)
-        .setWrapText(true));
-    });
+    const accessRows = PermissionAnalyzer.buildAccessRows(target);
+    if (accessRows.length === 0) {
+      list.addWidget(CardService.newTextParagraph()
+        .setText('<font color="#888">No permissions could be read for this item.</font>'));
+    } else {
+      accessRows.forEach(function (row) {
+        const p = row.permission;
+        list.addWidget(CardService.newDecoratedText()
+          .setStartIcon(Formatters.avatarFor(p))
+          .setText(Formatters.escapeHtml(Formatters.displayPrincipal(p)))
+          .setTopLabel(Formatters.principalSubtitle(p))
+          .setBottomLabel(Formatters.roleLabel(p.role) + ' · ' + row.sourceLabel)
+          .setWrapText(true));
+      });
+    }
     card.addSection(list);
 
     if (target.webViewLink) {
