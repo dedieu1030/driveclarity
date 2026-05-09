@@ -33,7 +33,7 @@ const DriveService = (function () {
   const PERMISSION_FIELDS = [
     'permissions(',
       'id,type,role,emailAddress,displayName,domain,photoLink,deleted,',
-      'allowFileDiscovery,pendingOwner,inheritedFrom,',
+      'allowFileDiscovery,pendingOwner,',
       'permissionDetails(permissionType,role,inheritedFrom,inherited)',
     '),nextPageToken'
   ].join('');
