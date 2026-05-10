@@ -160,17 +160,20 @@ const Cards = (function () {
    */
   function buildErrorCard(err) {
     const card = CardService.newCardBuilder()
-      .setName('DriveClarityError')
-      .setHeader(CardService.newCardHeader()
-        .setTitle('Something went wrong')
-        .setImageUrl('https://www.gstatic.com/images/icons/material/system/2x/error_outline_grey600_24dp.png'));
+      .setName('DriveClarityError');
 
     const section = CardService.newCardSection();
+    section.addWidget(CardService.newDecoratedText()
+      .setStartIcon(CardService.newIconImage()
+        .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/error_outline_grey600_24dp.png'))
+      .setText('<b>Something went wrong</b>')
+      .setWrapText(true));
+
     section.addWidget(CardService.newTextParagraph()
       .setText(Formatters.escapeHtml(Formatters.friendlyError(err))));
 
     section.addWidget(CardService.newTextParagraph()
-      .setText('<font color="#94A3B8">If this keeps happening, try reopening DriveClarity or selecting the file again.</font>'));
+      .setText('<font color="' + Formatters.COLORS.muted + '">If this keeps happening, try reopening DriveClarity or selecting the file again.</font>'));
 
     card.addSection(section);
     return card.build();
