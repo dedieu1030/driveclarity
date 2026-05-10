@@ -51,7 +51,7 @@ Aucun code préexistant. Toutes les décisions d'architecture sont à faire.
 | Élément | Spécification |
 |---|---|
 | Largeur panneau | ~440 px (canvas visible), barre d'en-tête full-bleed |
-| En-tête (chrome Google) | ~56 px de haut, fond couleur de marque (violet famille `#7C3AED`), coins haut arrondis, icônes blanches, kebab + X |
+| En-tête (chrome Google) | ~56 px de haut, fond couleur de marque (deep teal-navy `#1B4965`), coins haut arrondis, icônes blanches, kebab + X |
 | Padding body | ~16 px horizontal, ~16–20 px vertical entre blocs |
 | Titres de section | Bold, ~15–16 px, gris foncé `#111` |
 | Texte courant | ~14 px, `#444–555`, line-height ~1.5 |
@@ -130,20 +130,41 @@ Aucun code préexistant. Toutes les décisions d'architecture sont à faire.
 | Progress | Card avec `DecoratedText` par item : ⏳ processing / ✅ done / ⚠️ failed |
 | Result Report | Card finale avec compteurs + liste items à revoir manuellement |
 
-### 3.3 Vocabulaire visuel réutilisable (palette alignée Canva)
+### 3.3 Vocabulaire visuel — Trust & Calm palette
+
+Palette ancrée sur le **deep teal-navy `#1B4965`** (famille Stripe / Okta / Vanta), choisie pour transmettre **autorité calme + sécurité** sans le rouge alarmant des outils sécurité classiques. Appliquée au panneau via `addOns.common.layoutProperties.primaryColor`.
 
 ```
-Marque :          #6E5BFF   (primaire DriveClarity, distinct de Drive bleu & Canva violet)
-Visibilité :
-  Private         #6B7280   gris
-  Internal        #2563EB   bleu
-  External        #D97706   ambre
-  Public          #DC2626   rouge
-Surfaces :        blanc #FFFFFF, body bg subtil #F8F8FB
-Texte :           #111 / #555 / #888
-Bordure/divider : #E5E7EB
-Radius :          8 px cartes, 20 px pilules
+PRIMARY      #1B4965   Deep teal-navy   (boutons FILLED, header panneau, focus)
+ACCENT       #5FA8D3   Soft cyan        (info secondaire)
+TRUST        #62B6CB   Calm cyan        (highlights discrets)
+
+VISIBILITY (sémantique calmée)
+  Private    #6B7280   Neutral grey
+  Internal   #1B4965   Aligné marque
+  External   #C77D2C   Warm amber       (caution, pas alarme)
+  Public     #B83C3C   Deep red         (sérieux, pas agressif)
+
+SURFACES
+  Card BG    #FFFFFF
+  Body BG    #F4F7FA   Off-white teinté bleu
+  Divider    #E5E9EE
+
+TEXT
+  Primary    #0F1F2C   Very deep navy
+  Body       #4A5563   Calm grey-blue
+  Muted      #94A3B8   Cool grey
+
+STATUS
+  Success    #2D8F66   Calm forest
+  Warning    #C77D2C
+  Danger     #B83C3C
 ```
+
+**Manifest hooks**
+- `addOns.common.layoutProperties.primaryColor` → `#1B4965` (couleur de la barre de panneau Drive)
+- `addOns.common.layoutProperties.secondaryColor` → `#5FA8D3`
+- `logoUrl` → icône Material `verified_user` (bouclier + check) — sécurité + confiance
 
 ---
 

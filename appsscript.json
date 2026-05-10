@@ -22,8 +22,12 @@
   "addOns": {
     "common": {
       "name": "DriveClarity",
-      "logoUrl": "https://www.gstatic.com/images/icons/material/system/2x/lock_black_24dp.png",
+      "logoUrl": "https://www.gstatic.com/images/icons/material/system/2x/verified_user_black_24dp.png",
       "useLocaleFromApp": true,
+      "layoutProperties": {
+        "primaryColor": "#1B4965",
+        "secondaryColor": "#5FA8D3"
+      },
       "homepageTrigger": {
         "runFunction": "onHomepage",
         "enabled": true

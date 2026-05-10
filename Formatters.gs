@@ -9,19 +9,36 @@
 const Formatters = (function () {
 
   // ─── Brand palette ─────────────────────────────────────────────────────
+  //
+  // Designed for a permissions / trust tool. Anchored on a deep teal-navy
+  // (#1B4965) — the same family as Stripe, Okta, Vanta — to convey calm
+  // authority and security without the alarm-red of typical security UIs.
+  // Accent shades stay soft (cyan / cool greys) to avoid visual fatigue
+  // during long permission audits.
 
   const COLORS = {
-    brand:    '#6E5BFF',
-    private:  '#6B7280',
-    internal: '#2563EB',
-    external: '#D97706',
-    public:   '#DC2626',
-    danger:   '#DC2626',
-    success:  '#16A34A',
-    warning:  '#D97706',
-    muted:    '#888888',
-    text:     '#111111',
-    subtle:   '#555555'
+    brand:    '#1B4965',  // deep teal-navy, primary actions + brand
+    accent:   '#5FA8D3',  // soft cyan, secondary highlights
+    trust:    '#62B6CB',  // calm cyan, info accents
+
+    // Visibility (semantic, calmed)
+    private:  '#6B7280',  // neutral grey
+    internal: '#1B4965',  // matches brand
+    external: '#C77D2C',  // warm amber (caution, not alarm)
+    public:   '#B83C3C',  // deep red (serious, not aggressive)
+
+    // Status
+    success:  '#2D8F66',  // calm forest
+    warning:  '#C77D2C',
+    danger:   '#B83C3C',
+
+    // Text
+    text:     '#0F1F2C',  // very deep navy (titles)
+    subtle:   '#4A5563',  // body grey-blue
+    muted:    '#94A3B8',  // cool grey for labels and secondary text
+
+    // Surfaces
+    border:   '#E5E9EE'
   };
 
   // ─── Visibility ─────────────────────────────────────────────────────────

@@ -60,7 +60,7 @@ const Cards = (function () {
       .setHeader(CardService.newCardHeader()
         .setTitle('DriveClarity')
         .setSubtitle('Manage user access across your files')
-        .setImageUrl('https://www.gstatic.com/images/icons/material/system/2x/folder_shared_grey600_48dp.png')
+        .setImageUrl('https://www.gstatic.com/images/icons/material/system/2x/verified_user_grey600_48dp.png')
         .setImageStyle(CardService.ImageStyle.SQUARE));
 
     CleanupCard.addHomepageSections(builder, state);
@@ -100,7 +100,7 @@ const Cards = (function () {
     const section = CardService.newCardSection();
 
     section.addWidget(CardService.newImage()
-      .setImageUrl('https://www.gstatic.com/images/icons/material/system/2x/folder_shared_grey600_48dp.png')
+      .setImageUrl('https://www.gstatic.com/images/icons/material/system/2x/verified_user_grey600_48dp.png')
       .setAltText('DriveClarity'));
 
     section.addWidget(CardService.newTextParagraph()
@@ -149,7 +149,7 @@ const Cards = (function () {
       .setText(Formatters.escapeHtml(Formatters.friendlyError(err))));
 
     section.addWidget(CardService.newTextParagraph()
-      .setText('<font color="#888">If this keeps happening, try reopening DriveClarity or selecting the file again.</font>'));
+      .setText('<font color="#94A3B8">If this keeps happening, try reopening DriveClarity or selecting the file again.</font>'));
 
     card.addSection(section);
     return card.build();
