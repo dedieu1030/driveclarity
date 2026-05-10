@@ -23,22 +23,66 @@ const AuditCard = (function () {
    */
   function appendContent(section, file, state) {
     state = state || {};
-    const activeFilters = (state.activeFilters || '').split(',').filter(Boolean);
+    const isFolder = file.mimeType === 'application/vnd.google-apps.folder';
 
     appendAuditSummary(section, file);
-    appendSpacer(section);
-    appendFilters(section, file.id, activeFilters);
 
-    const investigations = buildInvestigations(file, activeFilters);
-    if (investigations.length === 0) {
+    if (isFolder) {
+      // Folders have multiple children — filters + item list make sense.
+      const activeFilters = (state.activeFilters || '').split(',').filter(Boolean);
       appendSpacer(section);
-      section.addWidget(CardService.newTextParagraph()
-        .setText(muted('No items matched the selected filters.')));
+      appendFilters(section, file.id, activeFilters);
+
+      const investigations = buildInvestigations(file, activeFilters);
+      if (investigations.length === 0) {
+        appendSpacer(section);
+        section.addWidget(CardService.newTextParagraph()
+          .setText(muted('No items matched the selected filters.')));
+      } else {
+        appendSpacer(section);
+        section.addWidget(title('Items'));
+        investigations.forEach(function (inv) {
+          appendInvestigationRow(section, file.id, inv);
+        });
+      }
     } else {
+      // Single file — show permissions directly, no filters needed.
       appendSpacer(section);
-      section.addWidget(title('Items'));
-      investigations.forEach(function (inv) {
-        appendInvestigationRow(section, file.id, inv);
+      appendSingleFileDetail(section, file);
+    }
+  }
+
+  // ─── Single-file audit (no filters) ──────────────────────────────────
+
+  function appendSingleFileDetail(section, file) {
+    const sig = PermissionAnalyzer.auditSignals(file);
+
+    section.addWidget(CardService.newDecoratedText()
+      .setTopLabel('PEOPLE WITH ACCESS')
+      .setText('<b>' + sig.total + '</b>'));
+
+    if (sig.externalCount > 0) {
+      section.addWidget(CardService.newDecoratedText()
+        .setTopLabel('EXTERNAL COLLABORATORS')
+        .setText('<b>' + sig.externalCount + '</b>')
+        .setBottomLabel(sig.externalDomains.join(', ') || '—'));
+    }
+
+    appendSpacer(section);
+    section.addWidget(title('All people'));
+
+    const accessRows = PermissionAnalyzer.buildAccessRows(file);
+    if (accessRows.length === 0) {
+      section.addWidget(CardService.newTextParagraph()
+        .setText(muted('No permissions could be read for this item.')));
+    } else {
+      accessRows.forEach(function (row) {
+        const p = row.permission;
+        section.addWidget(CardService.newDecoratedText()
+          .setStartIcon(Formatters.avatarFor(p))
+          .setText('<b>' + Formatters.escapeHtml(Formatters.displayPrincipal(p)) + '</b>')
+          .setBottomLabel(Formatters.roleLabel(p.role) + ' · ' + row.sourceLabel)
+          .setWrapText(true));
       });
     }
   }
