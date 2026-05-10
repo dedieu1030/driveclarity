@@ -127,11 +127,23 @@ const AccessCard = (function () {
 
     rows.forEach(function (row) {
       const p = row.permission;
-      section.addWidget(CardService.newDecoratedText()
+      const widget = CardService.newDecoratedText()
         .setStartIcon(Formatters.avatarFor(p))
         .setText('<b>' + Formatters.escapeHtml(Formatters.displayPrincipal(p)) + '</b>')
         .setBottomLabel(Formatters.roleLabel(p.role) + ' · ' + Formatters.accessSourceLabel(row.source))
-        .setWrapText(true));
+        .setWrapText(true);
+
+      // Only attach the click-to-revoke affordance when the API rules
+      // allow it. Otherwise the row stays purely informational.
+      if (PermissionAnalyzer.canRevokePermission(file, p)) {
+        widget
+          .setEndIcon(CardService.newIconImage()
+            .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/person_remove_grey600_24dp.png'))
+          .setOnClickAction(CardService.newAction()
+            .setFunctionName('actionOpenRevokeRow')
+            .setParameters({ fileId: file.id, permissionId: p.id }));
+      }
+      section.addWidget(widget);
     });
 
     section.addWidget(CardService.newTextButton()
@@ -140,6 +152,75 @@ const AccessCard = (function () {
       .setOnClickAction(CardService.newAction()
         .setFunctionName('actionShowExplanations')
         .setParameters({ fileId: file.id })));
+  }
+
+  /**
+   * Pushed confirmation card for revoking a single principal from a
+   * single file. Drive's system back arrow returns to the Access view
+   * unchanged; "Confirm" executes the revoke and refreshes the Access
+   * card with fresh data.
+   */
+  function buildRevokeRowCard(fileId, permissionId) {
+    let file, perm;
+    try { file = DriveService.getFile(fileId); }
+    catch (e) { return Cards.buildErrorCard(e); }
+
+    try {
+      const list = DriveService.listPermissions(fileId);
+      perm = list.find(function (p) { return p.id === permissionId; });
+    } catch (e) { return Cards.buildErrorCard(e); }
+
+    if (!perm) {
+      return Cards.buildErrorCard(new Error('notFound'));
+    }
+    if (!PermissionAnalyzer.canRevokePermission(file, perm)) {
+      return Cards.buildErrorCard(new Error('insufficientFilePermissions'));
+    }
+
+    const card = CardService.newCardBuilder()
+      .setName('RevokeRow_' + fileId + '_' + permissionId);
+
+    const section = CardService.newCardSection();
+
+    const subtitle = perm.emailAddress
+      ? '<font color="' + Formatters.COLORS.muted + '">' + Formatters.escapeHtml(perm.emailAddress) + '</font>'
+      : '<font color="' + Formatters.COLORS.muted + '">' + Formatters.escapeHtml(Formatters.principalSubtitle(perm) || '') + '</font>';
+
+    section.addWidget(CardService.newDecoratedText()
+      .setStartIcon(Formatters.avatarFor(perm))
+      .setText('<b>' + Formatters.escapeHtml(Formatters.displayPrincipal(perm)) + '</b>'
+             + (perm.emailAddress || Formatters.principalSubtitle(perm) ? '<br>' + subtitle : ''))
+      .setWrapText(true));
+
+    appendSpacer(section);
+    section.addWidget(title('Remove access'));
+    section.addWidget(CardService.newTextParagraph()
+      .setText('<font color="' + Formatters.COLORS.subtle + '">'
+             + 'This will remove their <b>' + Formatters.roleLabel(perm.role).toLowerCase() + '</b> access to <b>'
+             + Formatters.escapeHtml(file.name || 'this item') + '</b>. They will no longer be able to open it.'
+             + '</font>'));
+
+    appendSpacer(section);
+    section.addWidget(CardService.newTextParagraph()
+      .setText('<b><font color="' + Formatters.COLORS.danger + '">This action cannot be undone.</font></b>'));
+
+    card.addSection(section);
+
+    card.setFixedFooter(CardService.newFixedFooter()
+      .setPrimaryButton(CardService.newTextButton()
+        .setText('Remove access')
+        .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+        .setBackgroundColor(Formatters.COLORS.danger)
+        .setOnClickAction(CardService.newAction()
+          .setFunctionName('actionExecuteRevokeRow')
+          .setParameters({ fileId: fileId, permissionId: permissionId })))
+      .setSecondaryButton(CardService.newTextButton()
+        .setText('Cancel')
+        .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+        .setOnClickAction(CardService.newAction()
+          .setFunctionName('actionPopCard'))));
+
+    return card.build();
   }
 
   /**
@@ -247,6 +328,7 @@ const AccessCard = (function () {
   return {
     addSections: addSections,
     appendContent: appendContent,
-    buildExplanationCard: buildExplanationCard
+    buildExplanationCard: buildExplanationCard,
+    buildRevokeRowCard: buildRevokeRowCard
   };
 })();

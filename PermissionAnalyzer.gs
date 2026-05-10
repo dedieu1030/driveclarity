@@ -174,11 +174,36 @@ const PermissionAnalyzer = (function () {
     return Object.keys(seen);
   }
 
+  /**
+   * Whether the current user can revoke a specific permission on a
+   * specific file. Used to gate the click-to-revoke affordance in the
+   * Access view.
+   *
+   * Drive API requires:
+   *   - file.capabilities.canShare === true (user can modify sharing)
+   *   - permission.role !== 'owner'        (no API to remove an owner)
+   *   - permission is NOT inherited        (must revoke at the source;
+   *                                         calling permissions.delete
+   *                                         on an inherited entry
+   *                                         fails with
+   *                                         cannotModifyInheritedTeamDrivePermission)
+   */
+  function canRevokePermission(file, permission) {
+    if (!file || !permission) return false;
+    const caps = file.capabilities || {};
+    if (!caps.canShare) return false;
+    if (permission.role === 'owner') return false;
+    const details = (permission.permissionDetails && permission.permissionDetails[0]) || null;
+    if (details && details.inherited) return false;
+    return true;
+  }
+
   return {
     computeVisibility: computeVisibility,
     buildAccessRows: buildAccessRows,
     classifySource: classifySource,
     explainAccess: explainAccess,
-    auditSignals: auditSignals
+    auditSignals: auditSignals,
+    canRevokePermission: canRevokePermission
   };
 })();

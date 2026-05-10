@@ -57,6 +57,44 @@ function actionShowExplanations(e) {
 }
 
 /**
+ * Push the per-row revoke confirmation card. Only triggered when the
+ * row is clickable (PermissionAnalyzer.canRevokePermission gated it
+ * upstream).
+ */
+function actionOpenRevokeRow(e) {
+  const params = (e && e.commonEventObject && e.commonEventObject.parameters) || {};
+  const card = AccessCard.buildRevokeRowCard(params.fileId, params.permissionId);
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().pushCard(card))
+    .build();
+}
+
+/**
+ * Execute a single-row revoke from the confirmation card. On success,
+ * pop the confirmation and refresh the underlying Access view with
+ * fresh permission data. On failure, surface a friendly notification
+ * without leaving the confirmation card.
+ */
+function actionExecuteRevokeRow(e) {
+  const params = (e && e.commonEventObject && e.commonEventObject.parameters) || {};
+  const fileId = params.fileId;
+  const permissionId = params.permissionId;
+  try {
+    DriveService.deletePermission(fileId, permissionId);
+  } catch (err) {
+    return CardService.newActionResponseBuilder()
+      .setNotification(CardService.newNotification()
+        .setText(Formatters.friendlyError(err)))
+      .build();
+  }
+  const refreshed = Cards.buildMainCard(fileId, 'access');
+  return CardService.newActionResponseBuilder()
+    .setNotification(CardService.newNotification().setText('Access removed.'))
+    .setNavigation(CardService.newNavigation().popCard().updateCard(refreshed))
+    .build();
+}
+
+/**
  * Toggle an Audit filter pill.
  */
 function actionToggleAuditFilter(e) {
