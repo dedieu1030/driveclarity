@@ -90,22 +90,19 @@ const CleanupCard = (function () {
       .setText('<b>Audit sharing risks</b>')
       .setBottomLabel('Spot public links, external collaborators and unexpected access in one glance.')
       .setWrapText(true));
-
-    appendSpacer(section);
-
-    section.addWidget(CardService.newDecoratedText()
-      .setStartIcon(CardService.newIconImage()
-        .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/manage_accounts_grey600_24dp.png'))
-      .setTopLabel('Or — bulk cleanup')
-      .setText('<b>Search a person below</b>')
-      .setBottomLabel('Find every file they can access across your Drive and revoke their permissions in one click.')
-      .setWrapText(true));
   }
 
   // ─── Search ────────────────────────────────────────────────────────────
 
   function appendSearch(section, state) {
-    section.addWidget(title('Find a user'));
+    section.addWidget(CardService.newDecoratedText()
+      .setStartIcon(CardService.newIconImage()
+        .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/manage_accounts_grey600_24dp.png'))
+      .setText('<b>Bulk cleanup</b>')
+      .setBottomLabel('Find every file a person can access and revoke their permissions in one click.')
+      .setWrapText(true));
+
+    appendSpacer(section);
 
     const input = CardService.newTextInput()
       .setFieldName('cleanup_search')
