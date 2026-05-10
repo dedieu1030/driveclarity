@@ -304,6 +304,9 @@ const AuditCard = (function () {
 
   // ─── CSV export ────────────────────────────────────────────────────────
 
+  // Role weight for sorting: owner first, then descending authority.
+  var ROLE_ORDER = { owner: 0, organizer: 1, fileOrganizer: 2, writer: 3, commenter: 4, reader: 5 };
+
   function exportCsv(rootFileId) {
     const root = DriveService.getFile(rootFileId);
     const isFolder = root.mimeType === 'application/vnd.google-apps.folder';
@@ -311,24 +314,40 @@ const AuditCard = (function () {
       ? [root].concat(DriveService.listChildren(rootFileId, MAX_AUDIT_FILES))
       : [root];
 
-    const rows = [['File ID', 'File name', 'Type', 'Visibility', 'Public link', 'External count', 'External domains', 'Total permissions']];
+    var rows = [['File name', 'File type', 'Visibility', 'Person', 'Email', 'Role', 'Access type']];
+
     items.forEach(function (f) {
-      const sig = PermissionAnalyzer.auditSignals(f);
-      rows.push([
-        f.id,
-        csvEscape(f.name),
-        Formatters.fileTypeLabel(f),
-        Formatters.visibilityLabel(sig.visibility),
-        sig.hasPublic ? 'yes' : 'no',
-        String(sig.externalCount),
-        csvEscape(sig.externalDomains.join('; ')),
-        String(sig.total)
-      ]);
+      var vis = Formatters.visibilityLabel(PermissionAnalyzer.computeVisibility(f));
+      var fType = Formatters.fileTypeLabel(f);
+      var accessRows = PermissionAnalyzer.buildAccessRows(f);
+
+      // Sort by role weight (owner → viewer)
+      accessRows.sort(function (a, b) {
+        return (ROLE_ORDER[a.permission.role] || 99) - (ROLE_ORDER[b.permission.role] || 99);
+      });
+
+      if (accessRows.length === 0) {
+        rows.push([csvEscape(f.name), fType, vis, '', '', '', '']);
+        return;
+      }
+
+      accessRows.forEach(function (row) {
+        var p = row.permission;
+        rows.push([
+          csvEscape(f.name),
+          fType,
+          vis,
+          csvEscape(Formatters.displayPrincipal(p)),
+          csvEscape(p.emailAddress || ''),
+          Formatters.roleLabel(p.role),
+          Formatters.accessSourceLabel(row.source)
+        ]);
+      });
     });
 
-    const csv = rows.map(function (r) { return r.join(','); }).join('\n');
-    const stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', 'yyyy-MM-dd_HHmm');
-    const file = DriveApp.createFile(
+    var csv = rows.map(function (r) { return r.join(','); }).join('\n');
+    var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', 'yyyy-MM-dd_HHmm');
+    var file = DriveApp.createFile(
       'DriveClarity_audit_' + stamp + '.csv',
       csv,
       MimeType.CSV
