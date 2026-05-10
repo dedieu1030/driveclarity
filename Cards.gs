@@ -30,19 +30,27 @@ const Cards = (function () {
       return buildErrorCard(err);
     }
 
+    // Single CardSection so CardService never draws auto-dividers
+    // between header / tabs / content. Hierarchy is conveyed only by
+    // typography (bold titles), spacing (empty paragraphs as spacers)
+    // and muted secondary text — Material's "calm document" guidance.
     const builder = CardService.newCardBuilder()
-      .setName('DriveClarityMain_' + activeSection)
-      .setHeader(buildHeader(file));
+      .setName('DriveClarityMain_' + activeSection);
 
-    builder.addSection(buildTabBar(fileId, activeSection));
+    const section = CardService.newCardSection();
+    appendFileHero(section, file);
+    appendSpacer(section);
+    appendTabBar(section, fileId, activeSection);
+    appendSpacer(section);
 
     if (activeSection === 'access') {
-      AccessCard.addSections(builder, file, state);
+      AccessCard.appendContent(section, file, state);
     } else if (activeSection === 'audit') {
-      AuditCard.addSections(builder, file, state);
+      AuditCard.appendContent(section, file, state);
       builder.setFixedFooter(buildAuditFooter(file.id));
     }
 
+    builder.addSection(section);
     return builder.build();
   }
 
@@ -160,24 +168,32 @@ const Cards = (function () {
 
   // ─── Internal builders ──────────────────────────────────────────────────
 
-  function buildHeader(file) {
+  /**
+   * Inline file hero rendered at the top of the unified section. Replaces
+   * the legacy CardHeader (which auto-draws a divider underneath).
+   */
+  function appendFileHero(section, file) {
     const visibility = PermissionAnalyzer.computeVisibility(file);
-    const subtitle = Formatters.visibilityLabel(visibility) + ' · ' + Formatters.fileTypeLabel(file);
-    const header = CardService.newCardHeader()
-      .setTitle(file.name || 'Untitled')
-      .setSubtitle(subtitle)
-      .setImageStyle(CardService.ImageStyle.SQUARE);
+    const visColour = Formatters.COLORS[visibility] || Formatters.COLORS.private;
+    const visLabel = Formatters.visibilityLabel(visibility);
+    const typeLabel = Formatters.fileTypeLabel(file);
 
-    if (file.iconLink) {
-      header.setImageUrl(file.iconLink);
-    } else {
-      header.setImageUrl('https://www.gstatic.com/images/icons/material/system/2x/insert_drive_file_grey600_24dp.png');
-    }
-    return header;
+    const text = '<b>' + Formatters.escapeHtml(file.name || 'Untitled') + '</b>'
+               + '<br><font color="' + visColour + '">' + visLabel + '</font>'
+               + ' <font color="' + Formatters.COLORS.muted + '">· ' + Formatters.escapeHtml(typeLabel) + '</font>';
+
+    section.addWidget(CardService.newDecoratedText()
+      .setStartIcon(CardService.newIconImage()
+        .setIconUrl(file.iconLink || 'https://www.gstatic.com/images/icons/material/system/2x/insert_drive_file_grey600_24dp.png'))
+      .setText(text)
+      .setWrapText(true));
   }
 
-  function buildTabBar(fileId, activeSection) {
-    const section = CardService.newCardSection();
+  /**
+   * Inline tab bar — added as a widget to the parent section so it
+   * never introduces its own divider.
+   */
+  function appendTabBar(section, fileId, activeSection) {
     const buttonSet = CardService.newButtonSet();
 
     [
@@ -200,7 +216,31 @@ const Cards = (function () {
     });
 
     section.addWidget(buttonSet);
-    return section;
+  }
+
+  function appendSpacer(section) {
+    section.addWidget(CardService.newTextParagraph().setText(' '));
+  }
+
+  /**
+   * Legacy CardHeader builder. Still used by AuditCard.buildInvestigationDetail
+   * (a pushed sub-card where a CardHeader is appropriate because the user
+   * has explicitly drilled into a single item).
+   */
+  function buildHeader(file) {
+    const visibility = PermissionAnalyzer.computeVisibility(file);
+    const subtitle = Formatters.visibilityLabel(visibility) + ' · ' + Formatters.fileTypeLabel(file);
+    const header = CardService.newCardHeader()
+      .setTitle(file.name || 'Untitled')
+      .setSubtitle(subtitle)
+      .setImageStyle(CardService.ImageStyle.SQUARE);
+
+    if (file.iconLink) {
+      header.setImageUrl(file.iconLink);
+    } else {
+      header.setImageUrl('https://www.gstatic.com/images/icons/material/system/2x/insert_drive_file_grey600_24dp.png');
+    }
+    return header;
   }
 
   function buildAuditFooter(fileId) {
@@ -220,7 +260,6 @@ const Cards = (function () {
     buildBulkCleanupCard: buildBulkCleanupCard,
     buildEmptyStateCard: buildEmptyStateCard,
     buildErrorCard: buildErrorCard,
-    buildHeader: buildHeader,
-    buildTabBar: buildTabBar
+    buildHeader: buildHeader
   };
 })();

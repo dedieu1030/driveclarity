@@ -19,23 +19,29 @@
 
 const AccessCard = (function () {
 
-  function addSections(builder, file, state) {
+  /**
+   * Append Access content to an existing section. Used by Cards.gs
+   * which keeps the entire file-context card in ONE CardSection so
+   * no auto-divider is drawn between header / tabs / content.
+   */
+  function appendContent(section, file, state) {
     state = state || {};
-    const section = CardService.newCardSection();
-
-    appendHero(section, file);
-    appendSpacer(section);
-
+    // Visibility is already conveyed by the file hero at the top of
+    // the parent card, so the standalone visibility hero is dropped
+    // to avoid duplication.
     appendFacts(section, file);
     appendSpacer(section);
-
     appendWhoCanAccess(section, file, state);
 
     if (file.parents && file.parents.length > 0) {
       appendSpacer(section);
       appendHierarchy(section, file);
     }
+  }
 
+  function addSections(builder, file, state) {
+    const section = CardService.newCardSection();
+    appendContent(section, file, state);
     builder.addSection(section);
   }
 
@@ -200,5 +206,8 @@ const AccessCard = (function () {
     section.addWidget(CardService.newTextParagraph().setText(' '));
   }
 
-  return { addSections: addSections };
+  return {
+    addSections: addSections,
+    appendContent: appendContent
+  };
 })();

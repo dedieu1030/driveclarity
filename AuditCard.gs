@@ -17,29 +17,35 @@ const AuditCard = (function () {
   const FILTERS = ['public', 'external', 'shared_drive', 'inherited', 'direct'];
   const MAX_AUDIT_FILES = 25;
 
-  function addSections(builder, file, state) {
+  /**
+   * Append Audit content to an existing section so the parent card
+   * remains a single CardSection (no inter-section dividers).
+   */
+  function appendContent(section, file, state) {
     state = state || {};
     const activeFilters = (state.activeFilters || '').split(',').filter(Boolean);
 
-    const main = CardService.newCardSection();
-
-    appendAuditSummary(main, file);
-    appendSpacer(main);
-    appendFilters(main, file.id, activeFilters);
+    appendAuditSummary(section, file);
+    appendSpacer(section);
+    appendFilters(section, file.id, activeFilters);
 
     const investigations = buildInvestigations(file, activeFilters);
     if (investigations.length === 0) {
-      appendSpacer(main);
-      main.addWidget(CardService.newTextParagraph()
+      appendSpacer(section);
+      section.addWidget(CardService.newTextParagraph()
         .setText(muted('No items matched the selected filters.')));
     } else {
-      appendSpacer(main);
-      main.addWidget(title('Items'));
+      appendSpacer(section);
+      section.addWidget(title('Items'));
       investigations.forEach(function (inv) {
-        appendInvestigationRow(main, file.id, inv);
+        appendInvestigationRow(section, file.id, inv);
       });
     }
+  }
 
+  function addSections(builder, file, state) {
+    const main = CardService.newCardSection();
+    appendContent(main, file, state);
     builder.addSection(main);
   }
 
@@ -312,6 +318,7 @@ const AuditCard = (function () {
 
   return {
     addSections: addSections,
+    appendContent: appendContent,
     buildInvestigationDetail: buildInvestigationDetail,
     exportCsv: exportCsv
   };
