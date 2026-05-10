@@ -59,6 +59,7 @@ const CleanupCard = (function () {
       appendSpacer(main);
       main.addWidget(CardService.newDivider());
       appendSpacer(main);
+      appendBulkCleanupIntro(main);
       appendSearch(main, state);
       appendSpacer(main);
       main.addWidget(CardService.newTextParagraph()
@@ -92,18 +93,22 @@ const CleanupCard = (function () {
       .setWrapText(true));
   }
 
-  // ─── Search ────────────────────────────────────────────────────────────
-
-  function appendSearch(section, state) {
+  // Intro for the bulk-cleanup flow. Lives directly above the search
+  // field so the explanation and its action stay visually grouped
+  // (Gestalt proximity / Material form-field guidance).
+  function appendBulkCleanupIntro(section) {
     section.addWidget(CardService.newDecoratedText()
       .setStartIcon(CardService.newIconImage()
         .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/manage_accounts_grey600_24dp.png'))
-      .setText('<b>Bulk cleanup</b>')
-      .setBottomLabel('Find every file a person can access and revoke their permissions in one click.')
+      .setTopLabel('Bulk cleanup')
+      .setText('<b>Revoke a person from all your files</b>')
+      .setBottomLabel('Search someone below to find every file they can access across your Drive and remove their permissions in one click.')
       .setWrapText(true));
+  }
 
-    appendSpacer(section);
+  // ─── Search ────────────────────────────────────────────────────────────
 
+  function appendSearch(section, state) {
     const input = CardService.newTextInput()
       .setFieldName('cleanup_search')
       .setTitle('Email or name')
