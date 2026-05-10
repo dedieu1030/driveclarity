@@ -141,7 +141,7 @@ const CleanupCard = (function () {
   function appendResultsSummary(section, target, matches) {
     if (matches.length === 0) {
       section.addWidget(CardService.newDecoratedText()
-        .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.PERSON))
+        .setStartIcon(buildPersonAvatar(null))
         .setText('<b>' + Formatters.escapeHtml(target) + '</b>')
         .setBottomLabel('No matching access found in your files.')
         .setWrapText(true));
@@ -152,9 +152,16 @@ const CleanupCard = (function () {
     const group     = matches.filter(function (m) { return m.source === 'group'; }).length;
     const inherited = matches.filter(function (m) { return m.source === 'inherited'; }).length;
 
+    // Use the photoLink from any matching permission (they describe the
+    // same Google account so the avatar will be identical across rows).
+    const sample = matches.find(function (m) { return m.photoLink; }) || matches[0];
+    const headline = sample.displayName
+      ? Formatters.escapeHtml(sample.displayName) + '<br><font color="' + Formatters.COLORS.muted + '">' + Formatters.escapeHtml(target) + '</font>'
+      : Formatters.escapeHtml(target);
+
     section.addWidget(CardService.newDecoratedText()
-      .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.PERSON))
-      .setText('<b>' + Formatters.escapeHtml(target) + '</b>')
+      .setStartIcon(buildPersonAvatar(sample.photoLink))
+      .setText('<b>' + headline + '</b>')
       .setBottomLabel(Formatters.pluralize(matches.length, 'item', 'items')
                     + ' · ' + direct + ' direct · ' + group + ' group · ' + inherited + ' inherited')
       .setWrapText(true));
@@ -223,6 +230,19 @@ const CleanupCard = (function () {
     section.addWidget(CardService.newTextParagraph().setText(' '));
   }
 
+  /**
+   * Circular avatar from a Drive permission photoLink, or a generic
+   * person icon when the user has no profile photo.
+   */
+  function buildPersonAvatar(photoLink) {
+    if (photoLink) {
+      return CardService.newIconImage()
+        .setIconUrl(photoLink)
+        .setImageCropType(CardService.ImageCropType.CIRCLE);
+    }
+    return CardService.newIconImage().setIcon(CardService.Icon.PERSON);
+  }
+
   // ─── Footers ───────────────────────────────────────────────────────────
 
   /**
@@ -241,7 +261,9 @@ const CleanupCard = (function () {
 
   /**
    * Bulk page footer — only shown once the user has selected matching
-   * items to revoke. Otherwise the system back arrow is enough.
+   * items to revoke. The "Clear" affordance lives in the results
+   * header to avoid duplicating it here. Back navigation is handled
+   * by Drive's system back arrow.
    */
   function buildBulkCleanupFooter(state) {
     state = state || {};
@@ -258,13 +280,7 @@ const CleanupCard = (function () {
           .setParameters({
             cleanupTarget: state.cleanupTarget,
             cleanupSelected: state.cleanupSelected
-          })))
-      .setSecondaryButton(CardService.newTextButton()
-        .setText('Clear selection')
-        .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-        .setOnClickAction(CardService.newAction()
-          .setFunctionName('actionClearCleanupSelection')
-          .setParameters({ cleanupTarget: state.cleanupTarget })));
+          })));
   }
 
   // ─── Confirmation card (pushed) ────────────────────────────────────────
@@ -473,7 +489,9 @@ const CleanupCard = (function () {
               iconLink: f.iconLink,
               permissionId: p.id,
               role: p.role,
-              source: PermissionAnalyzer.classifySource(p)
+              source: PermissionAnalyzer.classifySource(p),
+              displayName: p.displayName || '',
+              photoLink: p.photoLink || ''
             });
           }
         });
@@ -518,7 +536,9 @@ const CleanupCard = (function () {
               iconLink: f.iconLink,
               permissionId: p.id,
               role: p.role,
-              source: PermissionAnalyzer.classifySource(p)
+              source: PermissionAnalyzer.classifySource(p),
+              displayName: p.displayName || '',
+              photoLink: p.photoLink || ''
             });
           }
         });
