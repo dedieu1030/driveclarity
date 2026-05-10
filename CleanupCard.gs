@@ -7,8 +7,10 @@
  * and can be bulk-revoked.
  *
  * Public API:
- *   - addHomepageSections(builder, state)       : main homepage view
- *   - buildHomepageFooter(state)                : conditional sticky footer
+ *   - addHomepageHeroSections(builder)          : "How it works" hero
+ *   - addBulkCleanupSections(builder, state)    : bulk page (search + results)
+ *   - buildHomepageFooter()                     : homepage CTA → bulk page
+ *   - buildBulkCleanupFooter(state)             : conditional revoke footer
  *   - buildConfirmRevokeCard(target, ids)       : pushed confirmation card
  *   - executeRevoke(ids, target)                : performs Permissions.delete
  *   - buildResultReport(target, result)         : pushed result summary
@@ -34,42 +36,18 @@ const CleanupCard = (function () {
   // we have to scan owned files and inspect permissions client-side.
   const NAME_SCAN_CAP = 500;
 
-  // ─── Homepage layout ───────────────────────────────────────────────────
+  // ─── Homepage hero (explanations only) ─────────────────────────────────
+  //
+  // The Drive homepage's single mission is to teach the user how the
+  // tool works. The bulk-cleanup workflow is a distinct page reached
+  // via the fixed-footer CTA — keeping the two flows physically and
+  // mentally separated (Canva-style navigation pattern).
 
-  function addHomepageSections(builder, state) {
-    state = state || {};
+  function addHomepageHeroSections(builder) {
     const main = CardService.newCardSection();
-
-    // When the user has already engaged with the search flow, results
-    // take priority. Otherwise, the homepage leads with explanations
-    // — the most important thing for a first-time user to learn is
-    // that DriveClarity works contextually on a selected file/folder.
-    if (state.cleanupTarget) {
-      appendSearch(main, state);
-      const matches = findFilesAccessibleBy(state.cleanupTarget);
-      appendSpacer(main);
-      appendResultsSummary(main, state.cleanupTarget, matches);
-
-      if (matches.length > 0) {
-        appendSpacer(main);
-        appendResultsList(main, state, matches);
-      }
-    } else {
-      appendHowItWorks(main);
-      appendSpacer(main);
-      main.addWidget(CardService.newDivider());
-      appendSpacer(main);
-      appendBulkCleanupIntro(main);
-      appendSearch(main, state);
-      appendSpacer(main);
-      main.addWidget(CardService.newTextParagraph()
-        .setText(muted('Group and inherited access cannot be revoked here — those need manual review.')));
-    }
-
+    appendHowItWorks(main);
     builder.addSection(main);
   }
-
-  // ─── How it works (priority block) ─────────────────────────────────────
 
   function appendHowItWorks(section) {
     section.addWidget(title('How DriveClarity works'));
@@ -93,17 +71,33 @@ const CleanupCard = (function () {
       .setWrapText(true));
   }
 
-  // Intro for the bulk-cleanup flow. Lives directly above the search
-  // field so the explanation and its action stay visually grouped
-  // (Gestalt proximity / Material form-field guidance).
-  function appendBulkCleanupIntro(section) {
-    section.addWidget(CardService.newDecoratedText()
-      .setStartIcon(CardService.newIconImage()
-        .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/manage_accounts_grey600_24dp.png'))
-      .setTopLabel('Bulk cleanup')
-      .setText('<b>Revoke a person from all your files</b>')
-      .setBottomLabel('Search someone below to find every file they can access across your Drive and remove their permissions in one click.')
-      .setWrapText(true));
+  // ─── Bulk cleanup page (pushed) ────────────────────────────────────────
+  //
+  // Search field + results live on this dedicated card, reached via
+  // the homepage CTA or the file-context "Manage user access" link.
+
+  function addBulkCleanupSections(builder, state) {
+    state = state || {};
+    const main = CardService.newCardSection();
+
+    appendSearch(main, state);
+
+    if (state.cleanupTarget) {
+      const matches = findFilesAccessibleBy(state.cleanupTarget);
+      appendSpacer(main);
+      appendResultsSummary(main, state.cleanupTarget, matches);
+
+      if (matches.length > 0) {
+        appendSpacer(main);
+        appendResultsList(main, state, matches);
+      }
+    } else {
+      appendSpacer(main);
+      main.addWidget(CardService.newTextParagraph()
+        .setText(muted('Group and inherited access cannot be revoked here — those need manual review.')));
+    }
+
+    builder.addSection(main);
   }
 
   // ─── Search ────────────────────────────────────────────────────────────
@@ -213,9 +207,27 @@ const CleanupCard = (function () {
     section.addWidget(CardService.newTextParagraph().setText(' '));
   }
 
-  // ─── Footer ────────────────────────────────────────────────────────────
+  // ─── Footers ───────────────────────────────────────────────────────────
 
-  function buildHomepageFooter(state) {
+  /**
+   * Homepage CTA — opens the dedicated bulk-cleanup page.
+   * Always present so the secondary workflow is one tap away.
+   */
+  function buildHomepageFooter() {
+    return CardService.newFixedFooter()
+      .setPrimaryButton(CardService.newTextButton()
+        .setText('Revoke a person from all files')
+        .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+        .setBackgroundColor(Formatters.COLORS.brand)
+        .setOnClickAction(CardService.newAction()
+          .setFunctionName('actionOpenBulkCleanup')));
+  }
+
+  /**
+   * Bulk page footer — only shown once the user has selected matching
+   * items to revoke. Otherwise the system back arrow is enough.
+   */
+  function buildBulkCleanupFooter(state) {
     state = state || {};
     const selectedIds = (state.cleanupSelected || '').split(',').filter(Boolean);
     if (!state.cleanupTarget || selectedIds.length === 0) return null;
@@ -232,7 +244,7 @@ const CleanupCard = (function () {
             cleanupSelected: state.cleanupSelected
           })))
       .setSecondaryButton(CardService.newTextButton()
-        .setText('Cancel')
+        .setText('Clear selection')
         .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
         .setOnClickAction(CardService.newAction()
           .setFunctionName('actionClearCleanupSelection')
@@ -277,8 +289,7 @@ const CleanupCard = (function () {
         .setText('Cancel')
         .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
         .setOnClickAction(CardService.newAction()
-          .setFunctionName('actionOpenHomepage')
-          .setParameters({ cleanupTarget: target }))));
+          .setFunctionName('actionPopCard'))));
 
     return card.build();
   }
@@ -504,8 +515,10 @@ const CleanupCard = (function () {
   }
 
   return {
-    addHomepageSections: addHomepageSections,
+    addHomepageHeroSections: addHomepageHeroSections,
+    addBulkCleanupSections: addBulkCleanupSections,
     buildHomepageFooter: buildHomepageFooter,
+    buildBulkCleanupFooter: buildBulkCleanupFooter,
     buildConfirmRevokeCard: buildConfirmRevokeCard,
     executeRevoke: executeRevoke,
     buildResultReport: buildResultReport,

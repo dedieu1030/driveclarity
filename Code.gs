@@ -112,32 +112,53 @@ function actionExportAuditCsv(e) {
 // ─── Homepage / Cleanup callbacks ──────────────────────────────────────────
 
 /**
- * Pop card stack back to the homepage (the user-search view).
+ * Collapse the card stack back to whatever the root was (homepage if
+ * the user entered from the Drive sidebar, file-context card if they
+ * entered from a selected file). Used by the "Done" button at the end
+ * of the bulk-cleanup workflow.
  */
 function actionOpenHomepage(e) {
-  const params = (e && e.commonEventObject && e.commonEventObject.parameters) || {};
-  const card = Cards.buildHomepageCard({
-    cleanupTarget: params.cleanupTarget || ''
-  });
   return CardService.newActionResponseBuilder()
-    .setNavigation(CardService.newNavigation().popToRoot().updateCard(card))
+    .setNavigation(CardService.newNavigation().popToRoot())
     .build();
 }
 
 /**
- * Run the homepage user search.
+ * Pop one card from the stack (used by Cancel buttons inside pushed
+ * sub-cards like the confirm-revoke screen).
+ */
+function actionPopCard(e) {
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().popCard())
+    .build();
+}
+
+/**
+ * Push the dedicated bulk-cleanup card (search + revoke a single user
+ * from many files). Reachable from the homepage CTA and from the
+ * "Manage user access" link inside file-context cards.
+ */
+function actionOpenBulkCleanup(e) {
+  const card = Cards.buildBulkCleanupCard({});
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().pushCard(card))
+    .build();
+}
+
+/**
+ * Run the bulk-cleanup user search (called from the bulk card).
  */
 function actionRunCleanupSearch(e) {
   const formInputs = (e.commonEventObject && e.commonEventObject.formInputs) || {};
   const target = (formInputs.cleanup_search && formInputs.cleanup_search.stringInputs.value[0]) || '';
-  const card = Cards.buildHomepageCard({ cleanupTarget: target.trim() });
+  const card = Cards.buildBulkCleanupCard({ cleanupTarget: target.trim() });
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().updateCard(card))
     .build();
 }
 
 /**
- * Toggle a single item in the homepage selection set.
+ * Toggle a single item in the bulk-cleanup selection set.
  */
 function actionToggleCleanupItem(e) {
   const params = e.commonEventObject.parameters || {};
@@ -149,7 +170,7 @@ function actionToggleCleanupItem(e) {
   } else {
     selected.add(itemId);
   }
-  const card = Cards.buildHomepageCard({
+  const card = Cards.buildBulkCleanupCard({
     cleanupTarget: cleanupTarget,
     cleanupSelected: Array.from(selected).join(',')
   });
@@ -163,7 +184,7 @@ function actionToggleCleanupItem(e) {
  */
 function actionSelectAllCleanup(e) {
   const params = e.commonEventObject.parameters || {};
-  const card = Cards.buildHomepageCard({
+  const card = Cards.buildBulkCleanupCard({
     cleanupTarget: params.cleanupTarget || '',
     cleanupSelected: params.allItems || ''
   });
@@ -173,11 +194,11 @@ function actionSelectAllCleanup(e) {
 }
 
 /**
- * Clear the entire homepage selection set.
+ * Clear the entire bulk-cleanup selection set.
  */
 function actionClearCleanupSelection(e) {
   const params = e.commonEventObject.parameters || {};
-  const card = Cards.buildHomepageCard({
+  const card = Cards.buildBulkCleanupCard({
     cleanupTarget: params.cleanupTarget || '',
     cleanupSelected: ''
   });

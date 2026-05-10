@@ -58,12 +58,37 @@ const Cards = (function () {
     // No CardHeader: the Drive side panel already shows "DriveClarity"
     // in its system chrome. A second title/icon inside the card body
     // would be pure redundancy.
+    //
+    // Homepage's only mission: explain the tool. Bulk cleanup lives in
+    // its own pushed card, accessed via the fixed-footer CTA below.
     const builder = CardService.newCardBuilder()
       .setName('DriveClarityHome');
 
-    CleanupCard.addHomepageSections(builder, state);
+    CleanupCard.addHomepageHeroSections(builder);
+    builder.setFixedFooter(CleanupCard.buildHomepageFooter());
 
-    const footer = CleanupCard.buildHomepageFooter(state);
+    return builder.build();
+  }
+
+  /**
+   * Pushed card dedicated to the user-search + bulk-revoke workflow.
+   * Reached from the homepage CTA or the file-context "Manage user
+   * access" link. The Drive side panel automatically shows a system
+   * back arrow that pops this card.
+   */
+  function buildBulkCleanupCard(state) {
+    state = state || {};
+    const builder = CardService.newCardBuilder()
+      .setName('DriveClarityBulk')
+      .setHeader(CardService.newCardHeader()
+        .setTitle('Revoke a person')
+        .setSubtitle('Find and remove their access across your Drive')
+        .setImageUrl('https://www.gstatic.com/images/icons/material/system/2x/manage_accounts_grey600_48dp.png')
+        .setImageStyle(CardService.ImageStyle.SQUARE));
+
+    CleanupCard.addBulkCleanupSections(builder, state);
+
+    const footer = CleanupCard.buildBulkCleanupFooter(state);
     if (footer) builder.setFixedFooter(footer);
 
     return builder.build();
@@ -84,7 +109,7 @@ const Cards = (function () {
       .setBottomLabel('Search a person and revoke their access to all your files.')
       .setWrapText(true)
       .setOnClickAction(CardService.newAction()
-        .setFunctionName('actionOpenHomepage')));
+        .setFunctionName('actionOpenBulkCleanup')));
     return section;
   }
 
@@ -212,6 +237,7 @@ const Cards = (function () {
   return {
     buildMainCard: buildMainCard,
     buildHomepageCard: buildHomepageCard,
+    buildBulkCleanupCard: buildBulkCleanupCard,
     buildEmptyStateCard: buildEmptyStateCard,
     buildErrorCard: buildErrorCard,
     buildHeader: buildHeader,
