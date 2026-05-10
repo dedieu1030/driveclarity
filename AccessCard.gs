@@ -14,7 +14,7 @@
  *    bureaucratic field labels.
  *  - Empty TextParagraphs act as breathing whitespace.
  *  - A second, lighter section is reserved for the "Manage user access"
- *    bridge (added by Cards.buildManageUsersSection).
+ *    Bulk cleanup is accessible from the Drive homepage.
  */
 
 const AccessCard = (function () {
