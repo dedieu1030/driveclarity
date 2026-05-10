@@ -183,8 +183,8 @@ const AccessCard = (function () {
     const section = CardService.newCardSection();
 
     const subtitle = perm.emailAddress
-      ? '<font color="' + Formatters.COLORS.muted + '">' + Formatters.escapeHtml(perm.emailAddress) + '</font>'
-      : '<font color="' + Formatters.COLORS.muted + '">' + Formatters.escapeHtml(Formatters.principalSubtitle(perm) || '') + '</font>';
+      ? '<font color="' + Formatters.COLORS.caption + '">' + Formatters.escapeHtml(perm.emailAddress) + '</font>'
+      : '<font color="' + Formatters.COLORS.caption + '">' + Formatters.escapeHtml(Formatters.principalSubtitle(perm) || '') + '</font>';
 
     section.addWidget(CardService.newDecoratedText()
       .setStartIcon(Formatters.avatarFor(perm))
@@ -225,7 +225,7 @@ const AccessCard = (function () {
 
   /**
    * Pushed card listing each principal with avatar, name, email and
-   * a short plain-language explanation. Reached via "Why do they have
+   * a plain-language explanation. Reached via "Why do they have
    * access?" — the Drive system back arrow returns to the file card.
    */
   function buildExplanationCard(fileId) {
@@ -239,8 +239,10 @@ const AccessCard = (function () {
     const section = CardService.newCardSection();
 
     section.addWidget(title('Why they have access'));
+    const isFolder = file.mimeType === 'application/vnd.google-apps.folder';
+    const itemNoun = isFolder ? 'folder' : 'file';
     section.addWidget(CardService.newTextParagraph()
-      .setText(muted('A short reason for each person who can access ' + Formatters.escapeHtml(file.name || 'this item') + '.')));
+      .setText(muted('A reason for each person who can access this ' + itemNoun + '.')));
     appendSpacer(section);
 
     const rows = PermissionAnalyzer.buildAccessRows(file);
@@ -253,10 +255,9 @@ const AccessCard = (function () {
         const name = Formatters.escapeHtml(Formatters.displayPrincipal(p));
         const sub = Formatters.principalSubtitle(p);
 
-        // Bold name on top, email muted below, explanation in body
-        // color (subtle = #4A5563, ~9:1 contrast — proper readability).
+        // Bold name > caption-colour email/sub-identifier > body explanation
         const text = '<b>' + name + '</b>'
-                   + (sub ? '<br><font color="' + Formatters.COLORS.muted + '">' + Formatters.escapeHtml(sub) + '</font>' : '')
+                   + (sub ? '<br><font color="' + Formatters.COLORS.caption + '">' + Formatters.escapeHtml(sub) + '</font>' : '')
                    + '<br><font color="' + Formatters.COLORS.subtle + '">' + Formatters.escapeHtml(row.why) + '</font>';
 
         section.addWidget(CardService.newDecoratedText()

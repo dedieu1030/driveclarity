@@ -36,6 +36,7 @@ const Formatters = (function () {
     text:     '#0F1F2C',  // very deep navy (titles)
     subtle:   '#4A5563',  // body grey-blue
     muted:    '#94A3B8',  // cool grey for labels and secondary text
+    caption:  '#5C6B7A',  // between subtle and muted — second-line email under a bold name; readable without competing with body text
 
     // Surfaces
     border:   '#E5E9EE'
