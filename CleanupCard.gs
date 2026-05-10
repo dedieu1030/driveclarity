@@ -31,11 +31,6 @@ const CleanupCard = (function () {
   // result count to keep the trigger under the 30s Apps Script budget.
   const FAST_PATH_CAP = 250;
 
-  // Name-based scan fallback (when the user types a partial name instead of
-  // an email). Drive offers no native query for non-email name matching, so
-  // we have to scan owned files and inspect permissions client-side.
-  const NAME_SCAN_CAP = 500;
-
   // ─── Homepage hero (explanations only) ─────────────────────────────────
   //
   // The Drive homepage's single mission is to teach the user how the
@@ -121,7 +116,7 @@ const CleanupCard = (function () {
   function appendSearch(section, state) {
     const input = CardService.newTextInput()
       .setFieldName('cleanup_search')
-      .setTitle('Email or name')
+      .setTitle('Email address')
       .setHint('e.g. alex@company.com');
     if (state.cleanupTarget) {
       input.setValue(state.cleanupTarget);
@@ -140,10 +135,14 @@ const CleanupCard = (function () {
 
   function appendResultsSummary(section, target, matches) {
     if (matches.length === 0) {
+      const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target);
+      const hint = isEmail
+        ? 'No matching access found in your files.'
+        : 'Please enter a full email address (e.g. alex@company.com).';
       section.addWidget(CardService.newDecoratedText()
         .setStartIcon(buildPersonAvatar(null))
         .setText('<b>' + Formatters.escapeHtml(target) + '</b>')
-        .setBottomLabel('No matching access found in your files.')
+        .setBottomLabel(hint)
         .setWrapText(true));
       return;
     }
@@ -431,12 +430,8 @@ const CleanupCard = (function () {
    */
   function findFilesAccessibleBy(target) {
     target = (target || '').trim();
-    if (!target) return [];
-
-    if (looksLikeEmail(target)) {
-      return findByEmail(target.toLowerCase());
-    }
-    return findByNameScan(target.toLowerCase());
+    if (!target || !looksLikeEmail(target)) return [];
+    return findByEmail(target.toLowerCase());
   }
 
   function looksLikeEmail(s) {
@@ -505,52 +500,6 @@ const CleanupCard = (function () {
       pageToken = res.nextPageToken;
       safety++;
     } while (pageToken && safety < 10 && processed < FAST_PATH_CAP);
-
-    return matches;
-  }
-
-  /**
-   * Slow path: for partial-name searches, scan files we own and match
-   * displayName / emailAddress on each permission.
-   */
-  function findByNameScan(needle) {
-    const matches = [];
-    let pageToken = null;
-    let scanned = 0;
-
-    do {
-      let res;
-      try { res = DriveService.listMyOwnedFiles(100, pageToken); }
-      catch (e) { break; }
-
-      const files = res.files || [];
-      for (let i = 0; i < files.length && scanned < NAME_SCAN_CAP; i++) {
-        const f = files[i];
-        scanned++;
-        let perms;
-        try { perms = DriveService.listPermissions(f.id); }
-        catch (e) { continue; }
-
-        perms.forEach(function (p) {
-          if (p.deleted || p.role === 'owner') return;
-          const candidate = ((p.emailAddress || '') + ' ' + (p.displayName || '')).toLowerCase();
-          if (candidate && candidate.indexOf(needle) >= 0) {
-            matches.push({
-              fileId: f.id,
-              fileName: f.name,
-              iconLink: f.iconLink,
-              permissionId: p.id,
-              role: p.role,
-              source: PermissionAnalyzer.classifySource(p),
-              displayName: p.displayName || '',
-              photoLink: p.photoLink || ''
-            });
-          }
-        });
-      }
-
-      pageToken = res.nextPageToken;
-    } while (pageToken && scanned < NAME_SCAN_CAP);
 
     return matches;
   }
