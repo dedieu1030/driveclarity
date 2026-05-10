@@ -92,14 +92,14 @@ const AccessCard = (function () {
     const ownerName = owner ? (owner.displayName || owner.emailAddress) : '—';
 
     section.addWidget(CardService.newDecoratedText()
-      .setTopLabel('OWNER')
-      .setText(Formatters.escapeHtml(ownerName))
+      .setTopLabel('Owner')
+      .setText('<b>' + Formatters.escapeHtml(ownerName) + '</b>')
       .setWrapText(true));
 
     if (file.driveId) {
       const drive = DriveService.getSharedDrive(file.driveId);
       section.addWidget(CardService.newDecoratedText()
-        .setTopLabel('SHARED DRIVE')
+        .setTopLabel('Shared drive')
         .setText(Formatters.escapeHtml(drive ? drive.name : 'Shared drive'))
         .setWrapText(true));
     }

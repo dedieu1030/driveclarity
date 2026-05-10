@@ -58,12 +58,12 @@ const AuditCard = (function () {
     const sig = PermissionAnalyzer.auditSignals(file);
 
     section.addWidget(CardService.newDecoratedText()
-      .setTopLabel('PEOPLE WITH ACCESS')
+      .setTopLabel('People with access')
       .setText('<b>' + sig.total + '</b>'));
 
     if (sig.externalCount > 0) {
       section.addWidget(CardService.newDecoratedText()
-        .setTopLabel('EXTERNAL COLLABORATORS')
+        .setTopLabel('External collaborators')
         .setText('<b>' + sig.externalCount + '</b>')
         .setBottomLabel(sig.externalDomains.join(', ') || '—'));
     }
@@ -258,16 +258,16 @@ const AuditCard = (function () {
     const main = CardService.newCardSection();
 
     main.addWidget(CardService.newDecoratedText()
-      .setTopLabel('PEOPLE WITH ACCESS')
+      .setTopLabel('People with access')
       .setText('<b>' + sig.total + '</b>'));
 
     main.addWidget(CardService.newDecoratedText()
-      .setTopLabel('EXTERNAL COLLABORATORS')
+      .setTopLabel('External collaborators')
       .setText('<b>' + sig.externalCount + '</b>')
       .setBottomLabel(sig.externalDomains.join(', ') || '—'));
 
     main.addWidget(CardService.newDecoratedText()
-      .setTopLabel('PUBLIC LINK')
+      .setTopLabel('Public link')
       .setText('<b>' + (sig.hasPublic ? 'Enabled' : 'Disabled') + '</b>'));
 
     appendSpacer(main);
