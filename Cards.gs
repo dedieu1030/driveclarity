@@ -55,13 +55,11 @@ const Cards = (function () {
    */
   function buildHomepageCard(state) {
     state = state || {};
+    // No CardHeader: the Drive side panel already shows "DriveClarity"
+    // in its system chrome. A second title/icon inside the card body
+    // would be pure redundancy.
     const builder = CardService.newCardBuilder()
-      .setName('DriveClarityHome')
-      .setHeader(CardService.newCardHeader()
-        .setTitle('DriveClarity')
-        .setSubtitle('Manage user access across your files')
-        .setImageUrl('https://www.gstatic.com/images/icons/material/system/2x/verified_user_grey600_48dp.png')
-        .setImageStyle(CardService.ImageStyle.SQUARE));
+      .setName('DriveClarityHome');
 
     CleanupCard.addHomepageSections(builder, state);
 
