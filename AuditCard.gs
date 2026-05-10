@@ -308,23 +308,67 @@ const AuditCard = (function () {
   var ROLE_ORDER = { owner: 0, organizer: 1, fileOrganizer: 2, writer: 3, commenter: 4, reader: 5 };
 
   function exportCsv(rootFileId) {
-    const root = DriveService.getFile(rootFileId);
-    const isFolder = root.mimeType === 'application/vnd.google-apps.folder';
-    const items = isFolder
-      ? [root].concat(DriveService.listChildren(rootFileId, MAX_AUDIT_FILES))
-      : [root];
+    var root = DriveService.getFile(rootFileId);
+    var isFolder = root.mimeType === 'application/vnd.google-apps.folder';
+    var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', 'yyyy-MM-dd_HHmm');
 
+    var csv = isFolder ? exportFolder(root, stamp) : exportSingleFile(root);
+
+    var file = DriveApp.createFile(
+      'DriveClarity_audit_' + stamp + '.csv',
+      csv,
+      MimeType.CSV
+    );
+    return file.getUrl();
+  }
+
+  /**
+   * Single file: metadata block at the top, then a clean person list.
+   *
+   *   File, My Document
+   *   Type, Sheet
+   *   Visibility, Internal
+   *
+   *   Person, Email, Role, Access type
+   *   DeDieu Ilanga, dedieu@…, Owner, Direct access
+   */
+  function exportSingleFile(f) {
+    var vis = Formatters.visibilityLabel(PermissionAnalyzer.computeVisibility(f));
+    var lines = [];
+    lines.push(['File', csvEscape(f.name)].join(','));
+    lines.push(['Type', Formatters.fileTypeLabel(f)].join(','));
+    lines.push(['Visibility', vis].join(','));
+    lines.push('');
+    lines.push(['Person', 'Email', 'Role', 'Access type'].join(','));
+
+    var accessRows = PermissionAnalyzer.buildAccessRows(f);
+    sortByRole(accessRows);
+
+    accessRows.forEach(function (row) {
+      var p = row.permission;
+      lines.push([
+        csvEscape(Formatters.displayPrincipal(p)),
+        csvEscape(p.emailAddress || ''),
+        Formatters.roleLabel(p.role),
+        Formatters.accessSourceLabel(row.source)
+      ].join(','));
+    });
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Folder: one row per person per file (standard multi-file audit).
+   */
+  function exportFolder(root) {
+    var items = [root].concat(DriveService.listChildren(root.id, MAX_AUDIT_FILES));
     var rows = [['File name', 'File type', 'Visibility', 'Person', 'Email', 'Role', 'Access type']];
 
     items.forEach(function (f) {
       var vis = Formatters.visibilityLabel(PermissionAnalyzer.computeVisibility(f));
       var fType = Formatters.fileTypeLabel(f);
       var accessRows = PermissionAnalyzer.buildAccessRows(f);
-
-      // Sort by role weight (owner → viewer)
-      accessRows.sort(function (a, b) {
-        return (ROLE_ORDER[a.permission.role] || 99) - (ROLE_ORDER[b.permission.role] || 99);
-      });
+      sortByRole(accessRows);
 
       if (accessRows.length === 0) {
         rows.push([csvEscape(f.name), fType, vis, '', '', '', '']);
@@ -345,14 +389,13 @@ const AuditCard = (function () {
       });
     });
 
-    var csv = rows.map(function (r) { return r.join(','); }).join('\n');
-    var stamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone() || 'UTC', 'yyyy-MM-dd_HHmm');
-    var file = DriveApp.createFile(
-      'DriveClarity_audit_' + stamp + '.csv',
-      csv,
-      MimeType.CSV
-    );
-    return file.getUrl();
+    return rows.map(function (r) { return r.join(','); }).join('\n');
+  }
+
+  function sortByRole(accessRows) {
+    accessRows.sort(function (a, b) {
+      return (ROLE_ORDER[a.permission.role] || 99) - (ROLE_ORDER[b.permission.role] || 99);
+    });
   }
 
   function csvEscape(s) {
