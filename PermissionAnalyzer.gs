@@ -86,20 +86,22 @@ const PermissionAnalyzer = (function () {
 
   /**
    * Plain-language explanation of why a principal has access.
-   * Designed to be readable by a non-technical user.
+   * The principal's name and email are shown separately by the UI,
+   * so this returns a short standalone sentence — never repeating
+   * the name. Uses the proper a/an article for the role.
    */
   function explainAccess(p, source, file) {
     const role = Formatters.roleLabel(p.role).toLowerCase();
-    const who = Formatters.displayPrincipal(p);
+    const article = /^[aeiou]/i.test(role) ? 'an' : 'a';
 
     if (p.role === 'owner') {
-      return who + ' owns this item.';
+      return 'Owns this item.';
     }
     if (source === 'inherited') {
-      return who + ' is a ' + role + ' through a parent folder.';
+      return 'Inherits ' + role + ' access from a parent folder.';
     }
     if (source === 'group') {
-      return who + ' has ' + role + ' access through this Google group.';
+      return 'Gets ' + role + ' access through a Google group.';
     }
     if (source === 'domain') {
       const domain = p.domain || 'your organization';
@@ -107,9 +109,9 @@ const PermissionAnalyzer = (function () {
     }
     if (source === 'anyone') {
       const discoverable = p.allowFileDiscovery ? 'can find and access' : 'with the link can access';
-      return 'Anyone on the web ' + discoverable + ' this item as a ' + role + '.';
+      return 'Anyone on the web ' + discoverable + ' this item as ' + article + ' ' + role + '.';
     }
-    return who + ' was added directly as a ' + role + '.';
+    return 'Added directly as ' + article + ' ' + role + '.';
   }
 
   function rolePriority(a, b) {

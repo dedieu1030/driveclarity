@@ -45,15 +45,14 @@ function actionSwitchSection(e) {
 }
 
 /**
- * Toggle the "Why they have access" explanations block.
+ * Push the "Why they have access" explanation card. The Drive system
+ * back arrow returns the user to the file's Access view.
  */
-function actionToggleExplanation(e) {
-  const params = e.commonEventObject.parameters || {};
-  const fileId = params.fileId;
-  const expandedId = params.expandedId || '';
-  const card = Cards.buildMainCard(fileId, 'access', { expandedExplanation: expandedId });
+function actionShowExplanations(e) {
+  const params = (e && e.commonEventObject && e.commonEventObject.parameters) || {};
+  const card = AccessCard.buildExplanationCard(params.fileId);
   return CardService.newActionResponseBuilder()
-    .setNavigation(CardService.newNavigation().updateCard(card))
+    .setNavigation(CardService.newNavigation().pushCard(card))
     .build();
 }
 

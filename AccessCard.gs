@@ -134,23 +134,61 @@ const AccessCard = (function () {
         .setWrapText(true));
     });
 
-    const expanded = state.expandedExplanation === '__why__';
     section.addWidget(CardService.newTextButton()
-      .setText(expanded ? 'Hide explanations' : 'Why do they have access?')
+      .setText('Why do they have access?')
       .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
       .setOnClickAction(CardService.newAction()
-        .setFunctionName('actionToggleExplanation')
-        .setParameters({
-          fileId: file.id,
-          expandedId: expanded ? '' : '__why__'
-        })));
+        .setFunctionName('actionShowExplanations')
+        .setParameters({ fileId: file.id })));
+  }
 
-    if (expanded) {
-      rows.forEach(function (row) {
-        section.addWidget(CardService.newTextParagraph()
-          .setText('<b>' + Formatters.escapeHtml(Formatters.displayPrincipal(row.permission)) + '</b><br>' + muted(row.why)));
+  /**
+   * Pushed card listing each principal with avatar, name, email and
+   * a short plain-language explanation. Reached via "Why do they have
+   * access?" — the Drive system back arrow returns to the file card.
+   */
+  function buildExplanationCard(fileId) {
+    let file;
+    try { file = DriveService.getFile(fileId); }
+    catch (e) { return Cards.buildErrorCard(e); }
+
+    const card = CardService.newCardBuilder()
+      .setName('AccessExplanations_' + fileId);
+
+    const section = CardService.newCardSection();
+
+    section.addWidget(title('Why they have access'));
+    section.addWidget(CardService.newTextParagraph()
+      .setText(muted('A short reason for each person who can access ' + Formatters.escapeHtml(file.name || 'this item') + '.')));
+    appendSpacer(section);
+
+    const rows = PermissionAnalyzer.buildAccessRows(file);
+    if (rows.length === 0) {
+      section.addWidget(CardService.newTextParagraph()
+        .setText(muted('No permissions could be read for this item.')));
+    } else {
+      rows.forEach(function (row, i) {
+        const p = row.permission;
+        const name = Formatters.escapeHtml(Formatters.displayPrincipal(p));
+        const sub = Formatters.principalSubtitle(p);
+
+        // Bold name on top, email muted below, explanation in body
+        // color (subtle = #4A5563, ~9:1 contrast — proper readability).
+        const text = '<b>' + name + '</b>'
+                   + (sub ? '<br><font color="' + Formatters.COLORS.muted + '">' + Formatters.escapeHtml(sub) + '</font>' : '')
+                   + '<br><font color="' + Formatters.COLORS.subtle + '">' + Formatters.escapeHtml(row.why) + '</font>';
+
+        section.addWidget(CardService.newDecoratedText()
+          .setStartIcon(Formatters.avatarFor(p))
+          .setText(text)
+          .setWrapText(true));
+
+        if (i < rows.length - 1) appendSpacer(section);
       });
     }
+
+    card.addSection(section);
+    return card.build();
   }
 
   // ─── Hierarchy ─────────────────────────────────────────────────────────
@@ -208,6 +246,7 @@ const AccessCard = (function () {
 
   return {
     addSections: addSections,
-    appendContent: appendContent
+    appendContent: appendContent,
+    buildExplanationCard: buildExplanationCard
   };
 })();
