@@ -46,6 +46,10 @@ const CleanupCard = (function () {
   function addHomepageHeroSections(builder) {
     const main = CardService.newCardSection();
     appendHowItWorks(main);
+    appendSpacer(main);
+    main.addWidget(CardService.newDivider());
+    appendSpacer(main);
+    appendBulkCleanupHint(main);
     builder.addSection(main);
   }
 
@@ -68,6 +72,18 @@ const CleanupCard = (function () {
       .setTopLabel('Step 2')
       .setText('<b>Audit sharing risks</b>')
       .setBottomLabel('Spot public links, external collaborators and unexpected access in one glance.')
+      .setWrapText(true));
+  }
+
+  // Hint above the homepage CTA — explains where the footer button
+  // leads so the action below feels grounded, not orphaned.
+  function appendBulkCleanupHint(section) {
+    section.addWidget(CardService.newDecoratedText()
+      .setStartIcon(CardService.newIconImage()
+        .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/manage_accounts_grey600_24dp.png'))
+      .setTopLabel('Offboarding a teammate?')
+      .setText('<b>Bulk cleanup</b>')
+      .setBottomLabel('Search a person and revoke their access to every file across your Drive in one click — use the button below.')
       .setWrapText(true));
   }
 
