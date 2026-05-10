@@ -73,13 +73,16 @@ const Cards = (function () {
 
   /**
    * Small CTA inside the file-context card that takes the user back to the
-   * homepage where the user-search + revoke flow lives.
+   * homepage where the user-search + revoke flow lives. Rendered as a
+   * lightweight footer-style block (its own section so the divider acts as
+   * a visual separator from the main content).
    */
   function buildManageUsersSection() {
     const section = CardService.newCardSection();
     section.addWidget(CardService.newDecoratedText()
-      .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.MULTIPLE_PEOPLE))
-      .setText('Manage user access')
+      .setStartIcon(CardService.newIconImage()
+        .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/manage_accounts_grey600_24dp.png'))
+      .setText('<b>Manage user access</b>')
       .setBottomLabel('Search a person and revoke their access to all your files.')
       .setWrapText(true)
       .setOnClickAction(CardService.newAction()

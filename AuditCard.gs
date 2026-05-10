@@ -1,13 +1,15 @@
 /**
  * AuditCard.gs — Section 2: Audit.
  *
- * Provides:
- *   - addSections(builder, file, state)        : main audit view
- *   - buildInvestigationDetail(rootId, fileId) : push-card detail per item
- *   - exportCsv(rootId)                        : write CSV to user's Drive
+ * Same visual rules as AccessCard:
+ *   - One CardSection for the main content
+ *   - Hero block at top with the most critical signal (public / external)
+ *   - Bold inline titles instead of section.setHeader
+ *   - Empty TextParagraphs as breathing whitespace
+ *   - Filter pills are kept as ButtonSet, but moved to the bottom of the
+ *     hero so they don't compete with the headline
  *
- * The audit walks 1 level of children for folders / Shared Drives and
- * computes per-file signals via PermissionAnalyzer.
+ * Detail pushed views (per-file investigation) follow the same rules.
  */
 
 const AuditCard = (function () {
@@ -19,29 +21,86 @@ const AuditCard = (function () {
     state = state || {};
     const activeFilters = (state.activeFilters || '').split(',').filter(Boolean);
 
-    builder.addSection(buildFilterPills(file.id, activeFilters));
-    builder.addSection(buildSummaryCard(file));
+    const main = CardService.newCardSection();
+
+    appendAuditSummary(main, file);
+    appendSpacer(main);
+    appendFilters(main, file.id, activeFilters);
 
     const investigations = buildInvestigations(file, activeFilters);
     if (investigations.length === 0) {
-      const empty = CardService.newCardSection().setHeader('No matches');
-      empty.addWidget(CardService.newTextParagraph()
-        .setText('<font color="#888">No items matched the selected filters.</font>'));
-      builder.addSection(empty);
+      appendSpacer(main);
+      main.addWidget(CardService.newTextParagraph()
+        .setText(muted('No items matched the selected filters.')));
+    } else {
+      appendSpacer(main);
+      main.addWidget(title('Items'));
+      investigations.forEach(function (inv) {
+        appendInvestigationRow(main, file.id, inv);
+      });
+    }
+
+    builder.addSection(main);
+  }
+
+  // ─── Summary hero ──────────────────────────────────────────────────────
+
+  function appendAuditSummary(section, file) {
+    const sig = PermissionAnalyzer.auditSignals(file);
+
+    const headlines = [];
+    if (sig.hasPublic) {
+      headlines.push({
+        colour: Formatters.COLORS.public,
+        text: 'Public link active',
+        sub: 'Anyone on the web with the link can access this item.',
+        iconUrl: 'https://www.gstatic.com/images/icons/material/system/2x/public_grey600_24dp.png'
+      });
+    }
+    if (sig.externalCount > 0) {
+      headlines.push({
+        colour: Formatters.COLORS.external,
+        text: Formatters.pluralize(sig.externalCount, 'external collaborator', 'external collaborators'),
+        sub: sig.externalDomains.length ? 'Domains: ' + sig.externalDomains.join(', ') : 'External users have access.',
+        iconUrl: 'https://www.gstatic.com/images/icons/material/system/2x/group_grey600_24dp.png'
+      });
+    }
+    if (sig.hasDomain) {
+      headlines.push({
+        colour: Formatters.COLORS.internal,
+        text: 'Visible to your organization',
+        sub: 'Anyone in your domain can access this item.',
+        iconUrl: 'https://www.gstatic.com/images/icons/material/system/2x/business_grey600_24dp.png'
+      });
+    }
+
+    if (headlines.length === 0) {
+      section.addWidget(CardService.newDecoratedText()
+        .setStartIcon(CardService.newIconImage()
+          .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/check_circle_grey600_24dp.png'))
+        .setText('<b><font color="' + Formatters.COLORS.success + '">No risky sharing</font></b>')
+        .setBottomLabel('No public links, external users or domain-wide access detected.')
+        .setWrapText(true));
       return;
     }
 
-    investigations.forEach(function (inv) {
-      builder.addSection(buildInvestigationCard(file.id, inv));
+    headlines.forEach(function (h, i) {
+      section.addWidget(CardService.newDecoratedText()
+        .setStartIcon(CardService.newIconImage().setIconUrl(h.iconUrl))
+        .setText('<b><font color="' + h.colour + '">' + Formatters.escapeHtml(h.text) + '</font></b>')
+        .setBottomLabel(h.sub)
+        .setWrapText(true));
+      if (i < headlines.length - 1) appendSpacer(section);
     });
   }
 
   // ─── Filter pills ──────────────────────────────────────────────────────
 
-  function buildFilterPills(fileId, active) {
-    const section = CardService.newCardSection().setHeader('Quick filters');
-    const buttonSet = CardService.newButtonSet();
+  function appendFilters(section, fileId, active) {
+    section.addWidget(CardService.newTextParagraph()
+      .setText(muted('Filter')));
 
+    const buttonSet = CardService.newButtonSet();
     FILTERS.forEach(function (f) {
       const btn = CardService.newTextButton()
         .setText(filterLabel(f))
@@ -62,7 +121,6 @@ const AuditCard = (function () {
       buttonSet.addButton(btn);
     });
     section.addWidget(buttonSet);
-    return section;
   }
 
   function filterLabel(f) {
@@ -76,50 +134,7 @@ const AuditCard = (function () {
     }
   }
 
-  // ─── Summary card ──────────────────────────────────────────────────────
-
-  function buildSummaryCard(file) {
-    const section = CardService.newCardSection().setHeader('Audit overview');
-    const sig = PermissionAnalyzer.auditSignals(file);
-
-    if (sig.hasPublic) {
-      section.addWidget(warningRow(
-        'This item is publicly accessible',
-        'Anyone on the web with the link can access this item.'
-      ));
-    }
-    if (sig.externalCount > 0) {
-      const domains = sig.externalDomains.join(', ');
-      section.addWidget(warningRow(
-        Formatters.pluralize(sig.externalCount, 'external collaborator', 'external collaborators') + ' detected',
-        domains ? 'Domains: ' + domains : 'External users have access to this item.'
-      ));
-    }
-    if (sig.hasDomain) {
-      section.addWidget(warningRow(
-        'Visible to your entire organization',
-        'Domain-wide access is enabled.'
-      ));
-    }
-    if (!sig.hasPublic && !sig.externalCount && !sig.hasDomain) {
-      section.addWidget(CardService.newDecoratedText()
-        .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.CONFIRMATION_NUMBER_ICON))
-        .setText('<b><font color="' + Formatters.COLORS.success + '">No risky sharing detected</font></b>')
-        .setBottomLabel('No public links, no external users, no domain-wide access.')
-        .setWrapText(true));
-    }
-    return section;
-  }
-
-  function warningRow(title, body) {
-    return CardService.newDecoratedText()
-      .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.STAR))
-      .setText('<b><font color="' + Formatters.COLORS.warning + '">' + Formatters.escapeHtml(title) + '</font></b>')
-      .setBottomLabel(body)
-      .setWrapText(true);
-  }
-
-  // ─── Investigation cards ───────────────────────────────────────────────
+  // ─── Investigation rows ────────────────────────────────────────────────
 
   function buildInvestigations(file, activeFilters) {
     const isFolder = file.mimeType === 'application/vnd.google-apps.folder';
@@ -156,10 +171,9 @@ const AuditCard = (function () {
     }
   }
 
-  function buildInvestigationCard(rootFileId, item) {
+  function appendInvestigationRow(section, rootFileId, item) {
     const f = item.file;
     const sig = item.sig;
-    const section = CardService.newCardSection();
 
     const labelParts = [];
     labelParts.push(Formatters.visibilityLabel(sig.visibility));
@@ -168,8 +182,7 @@ const AuditCard = (function () {
 
     section.addWidget(CardService.newDecoratedText()
       .setStartIcon(CardService.newIconImage().setIconUrl(f.iconLink || 'https://www.gstatic.com/images/icons/material/system/2x/insert_drive_file_grey600_24dp.png'))
-      .setText(Formatters.escapeHtml(f.name))
-      .setTopLabel(Formatters.fileTypeLabel(f))
+      .setText('<b>' + Formatters.escapeHtml(f.name) + '</b>')
       .setBottomLabel(labelParts.join(' · '))
       .setWrapText(true)
       .setOnClickAction(CardService.newAction()
@@ -178,11 +191,9 @@ const AuditCard = (function () {
           fileId: rootFileId,
           targetFileId: f.id
         })));
-
-    return section;
   }
 
-  // ─── Investigation detail (pushed card) ─────────────────────────────────
+  // ─── Investigation detail (pushed card) ────────────────────────────────
 
   function buildInvestigationDetail(rootFileId, targetFileId) {
     let target;
@@ -194,39 +205,40 @@ const AuditCard = (function () {
       .setName('AuditDetail_' + targetFileId)
       .setHeader(Cards.buildHeader(target));
 
-    const overview = CardService.newCardSection().setHeader('Sharing overview');
-    overview.addWidget(CardService.newDecoratedText()
-      .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.PERSON))
-      .setTopLabel('People with access')
-      .setText(String(sig.total)));
-    overview.addWidget(CardService.newDecoratedText()
-      .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.EMAIL))
-      .setTopLabel('External collaborators')
-      .setText(String(sig.externalCount))
-      .setBottomLabel(sig.externalDomains.join(', ') || '—'));
-    overview.addWidget(CardService.newDecoratedText()
-      .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.STAR))
-      .setTopLabel('Public link')
-      .setText(sig.hasPublic ? 'Enabled' : 'Disabled'));
-    card.addSection(overview);
+    const main = CardService.newCardSection();
 
-    const list = CardService.newCardSection().setHeader('All people');
+    main.addWidget(CardService.newDecoratedText()
+      .setTopLabel('PEOPLE WITH ACCESS')
+      .setText('<b>' + sig.total + '</b>'));
+
+    main.addWidget(CardService.newDecoratedText()
+      .setTopLabel('EXTERNAL COLLABORATORS')
+      .setText('<b>' + sig.externalCount + '</b>')
+      .setBottomLabel(sig.externalDomains.join(', ') || '—'));
+
+    main.addWidget(CardService.newDecoratedText()
+      .setTopLabel('PUBLIC LINK')
+      .setText('<b>' + (sig.hasPublic ? 'Enabled' : 'Disabled') + '</b>'));
+
+    appendSpacer(main);
+    main.addWidget(title('All people'));
+
     const accessRows = PermissionAnalyzer.buildAccessRows(target);
     if (accessRows.length === 0) {
-      list.addWidget(CardService.newTextParagraph()
-        .setText('<font color="#888">No permissions could be read for this item.</font>'));
+      main.addWidget(CardService.newTextParagraph()
+        .setText(muted('No permissions could be read for this item.')));
     } else {
       accessRows.forEach(function (row) {
         const p = row.permission;
-        list.addWidget(CardService.newDecoratedText()
+        main.addWidget(CardService.newDecoratedText()
           .setStartIcon(Formatters.avatarFor(p))
-          .setText(Formatters.escapeHtml(Formatters.displayPrincipal(p)))
-          .setTopLabel(Formatters.principalSubtitle(p))
+          .setText('<b>' + Formatters.escapeHtml(Formatters.displayPrincipal(p)) + '</b>')
           .setBottomLabel(Formatters.roleLabel(p.role) + ' · ' + row.sourceLabel)
           .setWrapText(true));
       });
     }
-    card.addSection(list);
+
+    card.addSection(main);
 
     if (target.webViewLink) {
       card.setFixedFooter(CardService.newFixedFooter()
@@ -281,6 +293,21 @@ const AuditCard = (function () {
       return '"' + s.replace(/"/g, '""') + '"';
     }
     return s;
+  }
+
+  // ─── Style helpers ─────────────────────────────────────────────────────
+
+  function title(text) {
+    return CardService.newTextParagraph()
+      .setText('<b>' + Formatters.escapeHtml(text) + '</b>');
+  }
+
+  function muted(text) {
+    return '<font color="' + Formatters.COLORS.muted + '">' + text + '</font>';
+  }
+
+  function appendSpacer(section) {
+    section.addWidget(CardService.newTextParagraph().setText(' '));
   }
 
   return {

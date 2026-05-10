@@ -38,29 +38,36 @@ const CleanupCard = (function () {
 
   function addHomepageSections(builder, state) {
     state = state || {};
+    const main = CardService.newCardSection();
 
-    builder.addSection(buildSearchSection(state));
+    appendSearch(main, state);
 
     if (state.cleanupTarget) {
       const matches = findFilesAccessibleBy(state.cleanupTarget);
-      builder.addSection(buildResultsHeader(state.cleanupTarget, matches));
+      appendSpacer(main);
+      appendResultsSummary(main, state.cleanupTarget, matches);
+
       if (matches.length > 0) {
-        builder.addSection(buildResultsList(state, matches));
+        appendSpacer(main);
+        appendResultsList(main, state, matches);
       }
     } else {
-      const help = CardService.newCardSection().setHeader('How it works');
-      help.addWidget(CardService.newTextParagraph()
-        .setText('1. Enter the email of a person (e.g. a departing employee).<br>2. DriveClarity scans files you own and lists everywhere they have access.<br>3. Select items and revoke in bulk.'));
-      help.addWidget(CardService.newTextParagraph()
-        .setText('<font color="#888">Inherited and group-based access cannot be revoked here and will need manual review.</font>'));
-      builder.addSection(help);
+      appendSpacer(main);
+      main.addWidget(title('How it works'));
+      main.addWidget(CardService.newTextParagraph()
+        .setText('<b>1.</b>  Enter someone\'s email below.<br><br><b>2.</b>  We scan your files and list every place they have access.<br><br><b>3.</b>  Select items and revoke in one click.'));
+      appendSpacer(main);
+      main.addWidget(CardService.newTextParagraph()
+        .setText(muted('Group and inherited access cannot be revoked here — those need manual review.')));
     }
+
+    builder.addSection(main);
   }
 
-  // ─── Search section ────────────────────────────────────────────────────
+  // ─── Search ────────────────────────────────────────────────────────────
 
-  function buildSearchSection(state) {
-    const section = CardService.newCardSection().setHeader('Find a user');
+  function appendSearch(section, state) {
+    section.addWidget(title('Find a user'));
 
     const input = CardService.newTextInput()
       .setFieldName('cleanup_search')
@@ -77,22 +84,18 @@ const CleanupCard = (function () {
       .setBackgroundColor(Formatters.COLORS.brand)
       .setOnClickAction(CardService.newAction()
         .setFunctionName('actionRunCleanupSearch')));
-
-    return section;
   }
 
-  // ─── Results ───────────────────────────────────────────────────────────
+  // ─── Results summary ───────────────────────────────────────────────────
 
-  function buildResultsHeader(target, matches) {
-    const section = CardService.newCardSection();
-
+  function appendResultsSummary(section, target, matches) {
     if (matches.length === 0) {
       section.addWidget(CardService.newDecoratedText()
         .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.PERSON))
-        .setText(Formatters.escapeHtml(target))
-        .setBottomLabel('No matching access found in files you own.')
+        .setText('<b>' + Formatters.escapeHtml(target) + '</b>')
+        .setBottomLabel('No matching access found in your files.')
         .setWrapText(true));
-      return section;
+      return;
     }
 
     const direct    = matches.filter(function (m) { return m.source === 'direct'; }).length;
@@ -102,8 +105,8 @@ const CleanupCard = (function () {
     section.addWidget(CardService.newDecoratedText()
       .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.PERSON))
       .setText('<b>' + Formatters.escapeHtml(target) + '</b>')
-      .setBottomLabel(Formatters.pluralize(matches.length, 'item', 'items') + ' · '
-                    + direct + ' direct · ' + group + ' group · ' + inherited + ' inherited')
+      .setBottomLabel(Formatters.pluralize(matches.length, 'item', 'items')
+                    + ' · ' + direct + ' direct · ' + group + ' group · ' + inherited + ' inherited')
       .setWrapText(true));
 
     section.addWidget(CardService.newButtonSet()
@@ -122,12 +125,13 @@ const CleanupCard = (function () {
         .setOnClickAction(CardService.newAction()
           .setFunctionName('actionClearCleanupSelection')
           .setParameters({ cleanupTarget: target }))));
-
-    return section;
   }
 
-  function buildResultsList(state, matches) {
-    const section = CardService.newCardSection().setHeader('Items with access');
+  // ─── Results list ──────────────────────────────────────────────────────
+
+  function appendResultsList(section, state, matches) {
+    section.addWidget(title('Items with access'));
+
     const selected = new Set((state.cleanupSelected || '').split(',').filter(Boolean));
 
     matches.forEach(function (m) {
@@ -145,17 +149,28 @@ const CleanupCard = (function () {
             selected: state.cleanupSelected || ''
           }));
 
-      const dt = CardService.newDecoratedText()
+      section.addWidget(CardService.newDecoratedText()
         .setStartIcon(CardService.newIconImage().setIconUrl(m.iconLink || 'https://www.gstatic.com/images/icons/material/system/2x/insert_drive_file_grey600_24dp.png'))
-        .setText(Formatters.escapeHtml(m.fileName))
+        .setText('<b>' + Formatters.escapeHtml(m.fileName) + '</b>')
         .setBottomLabel(Formatters.roleLabel(m.role) + ' · ' + Formatters.accessSourceLabel(m.source))
         .setSwitchControl(checkbox)
-        .setWrapText(true);
-
-      section.addWidget(dt);
+        .setWrapText(true));
     });
+  }
 
-    return section;
+  // ─── Style helpers ─────────────────────────────────────────────────────
+
+  function title(text) {
+    return CardService.newTextParagraph()
+      .setText('<b>' + Formatters.escapeHtml(text) + '</b>');
+  }
+
+  function muted(text) {
+    return '<font color="' + Formatters.COLORS.muted + '">' + text + '</font>';
+  }
+
+  function appendSpacer(section) {
+    section.addWidget(CardService.newTextParagraph().setText(' '));
   }
 
   // ─── Footer ────────────────────────────────────────────────────────────

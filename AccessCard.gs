@@ -1,69 +1,77 @@
 /**
  * AccessCard.gs — Section 1: Access.
  *
- * Provides addSections(builder, file, state) which appends to the main card:
- *   1. File Summary card section
- *   2. Who can access (vertical permission list)
- *   3. Why they have access (collapsible explanation per row)
- *   4. Permission hierarchy visualisation
- *   5. Shared Drive context (when applicable)
+ * Visual design rules (aligned with the Workspace add-on style guide and
+ * Canva-style compact panels):
+ *  - One single CardSection for the main content. Each new CardSection
+ *    introduces a heavy horizontal divider, so we collapse related ideas
+ *    into ONE section and rely on typography + spacing for hierarchy.
+ *  - Visibility appears as a hero block at the top (most critical signal).
+ *  - Key facts use DecoratedText.topLabel — small uppercase grey above the
+ *    bold value — for a calm spreadsheet-free key/value rhythm.
+ *  - Bold body titles ("Who can access", "Where this lives") replace the
+ *    section.setHeader pattern so they read as inline section markers, not
+ *    bureaucratic field labels.
+ *  - Empty TextParagraphs act as breathing whitespace.
+ *  - A second, lighter section is reserved for the "Manage user access"
+ *    bridge (added by Cards.buildManageUsersSection).
  */
 
 const AccessCard = (function () {
 
   function addSections(builder, file, state) {
     state = state || {};
+    const section = CardService.newCardSection();
 
-    builder.addSection(buildFileSummary(file));
-    builder.addSection(buildWhoCanAccess(file, state));
-    builder.addSection(buildHierarchy(file));
+    appendHero(section, file);
+    appendSpacer(section);
 
-    if (file.driveId) {
-      const sharedDrive = DriveService.getSharedDrive(file.driveId);
-      if (sharedDrive) {
-        builder.addSection(buildSharedDriveContext(sharedDrive));
-      }
+    appendFacts(section, file);
+    appendSpacer(section);
+
+    appendWhoCanAccess(section, file, state);
+
+    if (file.parents && file.parents.length > 0) {
+      appendSpacer(section);
+      appendHierarchy(section, file);
     }
+
+    builder.addSection(section);
   }
 
-  // ─── 1. File summary ────────────────────────────────────────────────────
+  // ─── Hero block ────────────────────────────────────────────────────────
 
-  function buildFileSummary(file) {
-    const section = CardService.newCardSection().setHeader('File summary');
-    const owner = (file.owners && file.owners[0]) || null;
+  function appendHero(section, file) {
     const visibility = PermissionAnalyzer.computeVisibility(file);
+    const colour = Formatters.COLORS[visibility] || Formatters.COLORS.private;
 
     section.addWidget(CardService.newDecoratedText()
-      .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.PERSON))
-      .setTopLabel('Owner')
-      .setText(owner ? (owner.displayName || owner.emailAddress) : '—'));
+      .setStartIcon(visibilityIcon(visibility))
+      .setText('<b><font color="' + colour + '">' + Formatters.visibilityLabel(visibility) + '</font></b>')
+      .setBottomLabel(visibilityCaption(visibility))
+      .setWrapText(true));
+  }
 
-    if (file.driveId) {
-      const drive = DriveService.getSharedDrive(file.driveId);
-      section.addWidget(CardService.newDecoratedText()
-        .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.HOTEL_ROOM_TYPES))
-        .setTopLabel('Shared drive')
-        .setText(drive ? drive.name : 'Shared drive'));
+  function visibilityIcon(visibility) {
+    switch (visibility) {
+      case 'public':
+        return CardService.newIconImage()
+          .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/public_grey600_24dp.png');
+      case 'external':
+        return CardService.newIconImage()
+          .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/group_grey600_24dp.png');
+      case 'internal':
+        return CardService.newIconImage()
+          .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/business_grey600_24dp.png');
+      default:
+        return CardService.newIconImage()
+          .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/lock_grey600_24dp.png');
     }
-
-    section.addWidget(CardService.newDecoratedText()
-      .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.EMAIL))
-      .setTopLabel('Visibility')
-      .setText(Formatters.visibilityBadge(visibility))
-      .setBottomLabel(visibilityCaption(visibility)));
-
-    if (file.webViewLink) {
-      section.addWidget(CardService.newTextButton()
-        .setText('Open in Drive')
-        .setOpenLink(CardService.newOpenLink().setUrl(file.webViewLink)));
-    }
-
-    return section;
   }
 
   function visibilityCaption(v) {
     switch (v) {
-      case 'public':   return 'Anyone on the web can access this item.';
+      case 'public':   return 'Anyone on the web with the link can access this item.';
       case 'external': return 'Shared with people outside your organization.';
       case 'internal': return 'Visible to people in your organization.';
       case 'private':  return 'Only the owner has access.';
@@ -71,69 +79,85 @@ const AccessCard = (function () {
     }
   }
 
-  // ─── 2. Who can access ──────────────────────────────────────────────────
+  // ─── Key facts ─────────────────────────────────────────────────────────
 
-  function buildWhoCanAccess(file, state) {
-    const section = CardService.newCardSection().setHeader('Who can access');
+  function appendFacts(section, file) {
+    const owner = (file.owners && file.owners[0]) || null;
+    const ownerName = owner ? (owner.displayName || owner.emailAddress) : '—';
+
+    section.addWidget(CardService.newDecoratedText()
+      .setTopLabel('OWNER')
+      .setText(Formatters.escapeHtml(ownerName))
+      .setWrapText(true));
+
+    if (file.driveId) {
+      const drive = DriveService.getSharedDrive(file.driveId);
+      section.addWidget(CardService.newDecoratedText()
+        .setTopLabel('SHARED DRIVE')
+        .setText(Formatters.escapeHtml(drive ? drive.name : 'Shared drive'))
+        .setWrapText(true));
+    }
+
+    if (file.webViewLink) {
+      section.addWidget(CardService.newTextButton()
+        .setText('Open in Drive')
+        .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+        .setOpenLink(CardService.newOpenLink().setUrl(file.webViewLink)));
+    }
+  }
+
+  // ─── Who can access ────────────────────────────────────────────────────
+
+  function appendWhoCanAccess(section, file, state) {
+    section.addWidget(title('Who can access'));
+
     const rows = PermissionAnalyzer.buildAccessRows(file);
 
     if (rows.length === 0) {
       section.addWidget(CardService.newTextParagraph()
-        .setText('<font color="#888">No permissions could be read for this item.</font>'));
-      return section;
+        .setText(muted('No permissions could be read for this item.')));
+      return;
     }
 
     rows.forEach(function (row) {
       const p = row.permission;
       section.addWidget(CardService.newDecoratedText()
         .setStartIcon(Formatters.avatarFor(p))
-        .setText(Formatters.escapeHtml(Formatters.displayPrincipal(p)))
-        .setTopLabel(Formatters.principalSubtitle(p))
+        .setText('<b>' + Formatters.escapeHtml(Formatters.displayPrincipal(p)) + '</b>')
         .setBottomLabel(Formatters.roleLabel(p.role) + ' · ' + Formatters.accessSourceLabel(row.source))
         .setWrapText(true));
     });
 
-    section.addWidget(CardService.newDivider());
-
-    const collapsibleHeader = state.expandedExplanation === '__why__'
-      ? 'Hide explanations'
-      : 'Why do they have access?';
-
+    const expanded = state.expandedExplanation === '__why__';
     section.addWidget(CardService.newTextButton()
-      .setText(collapsibleHeader)
+      .setText(expanded ? 'Hide explanations' : 'Why do they have access?')
+      .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
       .setOnClickAction(CardService.newAction()
         .setFunctionName('actionToggleExplanation')
         .setParameters({
           fileId: file.id,
-          expandedId: state.expandedExplanation === '__why__' ? '' : '__why__'
+          expandedId: expanded ? '' : '__why__'
         })));
 
-    if (state.expandedExplanation === '__why__') {
+    if (expanded) {
       rows.forEach(function (row) {
-        section.addWidget(CardService.newDecoratedText()
-          .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.DESCRIPTION))
-          .setText(Formatters.escapeHtml(Formatters.displayPrincipal(row.permission)))
-          .setBottomLabel(row.why)
-          .setWrapText(true));
+        section.addWidget(CardService.newTextParagraph()
+          .setText('<b>' + Formatters.escapeHtml(Formatters.displayPrincipal(row.permission)) + '</b><br>' + muted(row.why)));
       });
     }
-
-    return section;
   }
 
-  // ─── 3. Hierarchy ──────────────────────────────────────────────────────
+  // ─── Hierarchy ─────────────────────────────────────────────────────────
 
-  function buildHierarchy(file) {
-    const section = CardService.newCardSection().setHeader('Permission hierarchy');
+  function appendHierarchy(section, file) {
+    section.addWidget(title('Where this lives'));
+
     const tree = renderTree(file);
+    section.addWidget(CardService.newTextParagraph()
+      .setText('<font face="monospace" color="' + Formatters.COLORS.subtle + '">' + Formatters.escapeHtml(tree) + '</font>'));
 
     section.addWidget(CardService.newTextParagraph()
-      .setText('<font face="monospace">' + Formatters.escapeHtml(tree) + '</font>'));
-
-    section.addWidget(CardService.newTextParagraph()
-      .setText('<font color="#666">This item may inherit permissions from its parent folders.</font>'));
-
-    return section;
+      .setText(muted('This item may inherit permissions from its parent folders.')));
   }
 
   function renderTree(file) {
@@ -161,27 +185,19 @@ const AccessCard = (function () {
     return lines.join('\n');
   }
 
-  // ─── 4. Shared Drive context ───────────────────────────────────────────
+  // ─── Style helpers ─────────────────────────────────────────────────────
 
-  function buildSharedDriveContext(drive) {
-    const section = CardService.newCardSection().setHeader('Shared drive context');
+  function title(text) {
+    return CardService.newTextParagraph()
+      .setText('<b>' + Formatters.escapeHtml(text) + '</b>');
+  }
 
-    section.addWidget(CardService.newDecoratedText()
-      .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.HOTEL_ROOM_TYPES))
-      .setTopLabel('Drive name')
-      .setText(drive.name || 'Shared drive'));
+  function muted(text) {
+    return '<font color="' + Formatters.COLORS.muted + '">' + text + '</font>';
+  }
 
-    const r = drive.restrictions || {};
-    const summary = [];
-    if (r.domainUsersOnly)            summary.push('Restricted to your organization');
-    if (r.driveMembersOnly)           summary.push('Members only — no outside sharing');
-    if (r.copyRequiresWriterPermission) summary.push('Copy requires editor permission');
-    if (summary.length === 0)         summary.push('No additional restrictions configured.');
-
-    section.addWidget(CardService.newTextParagraph()
-      .setText(summary.map(function (s) { return '• ' + s; }).join('\n')));
-
-    return section;
+  function appendSpacer(section) {
+    section.addWidget(CardService.newTextParagraph().setText(' '));
   }
 
   return { addSections: addSections };
