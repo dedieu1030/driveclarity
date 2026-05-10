@@ -78,13 +78,11 @@ const Cards = (function () {
    */
   function buildBulkCleanupCard(state) {
     state = state || {};
+    // No CardHeader: the user just tapped a labelled CTA and the
+    // system back arrow makes the navigation context obvious. Adding
+    // a header would only repeat what the user already knows.
     const builder = CardService.newCardBuilder()
-      .setName('DriveClarityBulk')
-      .setHeader(CardService.newCardHeader()
-        .setTitle('Revoke a person')
-        .setSubtitle('Find and remove their access across your Drive')
-        .setImageUrl('https://www.gstatic.com/images/icons/material/system/2x/manage_accounts_grey600_48dp.png')
-        .setImageStyle(CardService.ImageStyle.SQUARE));
+      .setName('DriveClarityBulk');
 
     CleanupCard.addBulkCleanupSections(builder, state);
 
