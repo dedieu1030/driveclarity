@@ -155,13 +155,18 @@ const CleanupCard = (function () {
     // Use the photoLink from any matching permission (they describe the
     // same Google account so the avatar will be identical across rows).
     const sample = matches.find(function (m) { return m.photoLink; }) || matches[0];
-    const headline = sample.displayName
-      ? Formatters.escapeHtml(sample.displayName) + '<br><font color="' + Formatters.COLORS.muted + '">' + Formatters.escapeHtml(target) + '</font>'
-      : Formatters.escapeHtml(target);
+    // Bold only the displayName; render the email in the body text
+    // colour (#4A5563, ~9:1 contrast) for proper WCAG AA readability.
+    // When no displayName is available, the email *is* the headline
+    // and gets the bold body treatment.
+    const text = sample.displayName
+      ? '<b>' + Formatters.escapeHtml(sample.displayName) + '</b>'
+        + '<br><font color="' + Formatters.COLORS.subtle + '">' + Formatters.escapeHtml(target) + '</font>'
+      : '<b>' + Formatters.escapeHtml(target) + '</b>';
 
     section.addWidget(CardService.newDecoratedText()
       .setStartIcon(buildPersonAvatar(sample.photoLink))
-      .setText('<b>' + headline + '</b>')
+      .setText(text)
       .setBottomLabel(Formatters.pluralize(matches.length, 'item', 'items')
                     + ' · ' + direct + ' direct · ' + group + ' group · ' + inherited + ' inherited')
       .setWrapText(true));
