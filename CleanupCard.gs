@@ -40,9 +40,12 @@ const CleanupCard = (function () {
     state = state || {};
     const main = CardService.newCardSection();
 
-    appendSearch(main, state);
-
+    // When the user has already engaged with the search flow, results
+    // take priority. Otherwise, the homepage leads with explanations
+    // — the most important thing for a first-time user to learn is
+    // that DriveClarity works contextually on a selected file/folder.
     if (state.cleanupTarget) {
+      appendSearch(main, state);
       const matches = findFilesAccessibleBy(state.cleanupTarget);
       appendSpacer(main);
       appendResultsSummary(main, state.cleanupTarget, matches);
@@ -52,16 +55,51 @@ const CleanupCard = (function () {
         appendResultsList(main, state, matches);
       }
     } else {
+      appendHowItWorks(main);
       appendSpacer(main);
-      main.addWidget(title('How it works'));
-      main.addWidget(CardService.newTextParagraph()
-        .setText('<b>1.</b>  Enter someone\'s email below.<br><br><b>2.</b>  We scan your files and list every place they have access.<br><br><b>3.</b>  Select items and revoke in one click.'));
+      main.addWidget(CardService.newDivider());
+      appendSpacer(main);
+      appendSearch(main, state);
       appendSpacer(main);
       main.addWidget(CardService.newTextParagraph()
         .setText(muted('Group and inherited access cannot be revoked here — those need manual review.')));
     }
 
     builder.addSection(main);
+  }
+
+  // ─── How it works (priority block) ─────────────────────────────────────
+
+  function appendHowItWorks(section) {
+    section.addWidget(title('How DriveClarity works'));
+
+    section.addWidget(CardService.newDecoratedText()
+      .setStartIcon(CardService.newIconImage()
+        .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/folder_open_grey600_24dp.png'))
+      .setTopLabel('Step 1')
+      .setText('<b>Select a file or folder in Drive</b>')
+      .setBottomLabel('DriveClarity opens automatically in this side panel and shows everyone who has access — direct, group and inherited.')
+      .setWrapText(true));
+
+    appendSpacer(section);
+
+    section.addWidget(CardService.newDecoratedText()
+      .setStartIcon(CardService.newIconImage()
+        .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/visibility_grey600_24dp.png'))
+      .setTopLabel('Step 2')
+      .setText('<b>Audit sharing risks</b>')
+      .setBottomLabel('Spot public links, external collaborators and unexpected access in one glance.')
+      .setWrapText(true));
+
+    appendSpacer(section);
+
+    section.addWidget(CardService.newDecoratedText()
+      .setStartIcon(CardService.newIconImage()
+        .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/manage_accounts_grey600_24dp.png'))
+      .setTopLabel('Or — bulk cleanup')
+      .setText('<b>Search a person below</b>')
+      .setBottomLabel('Find every file they can access across your Drive and revoke their permissions in one click.')
+      .setWrapText(true));
   }
 
   // ─── Search ────────────────────────────────────────────────────────────
