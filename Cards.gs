@@ -13,7 +13,7 @@ const Cards = (function () {
 
   /** Public logo URL — keep in sync with appsscript.json addOns.common.logoUrl. */
   const ADD_ON_LOGO_URL =
-    'https://raw.githubusercontent.com/dedieu1030/driveclarity/main/Logo-add-on.png';
+    'https://raw.githubusercontent.com/dedieu1030/driveclarity/main/logo-40-40.png';
 
   // ─── Public ─────────────────────────────────────────────────────────────
 
