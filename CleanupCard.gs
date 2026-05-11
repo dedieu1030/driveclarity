@@ -1,7 +1,7 @@
 /**
  * CleanupCard.gs — Drive homepage: user-centric cleanup workflow.
  *
- * This module powers the DriveClarity homepage card (no file selected).
+ * This module powers the Drive Access Viewer homepage card (no file selected).
  * The flow is intentionally user-centric: the user is searched first, then
  * all permissions they have on files owned by the current user are listed
  * and can be bulk-revoked.
@@ -49,14 +49,14 @@ const CleanupCard = (function () {
   }
 
   function appendHowItWorks(section) {
-    section.addWidget(title('How DriveClarity works'));
+    section.addWidget(title('How it works'));
 
     section.addWidget(CardService.newDecoratedText()
       .setStartIcon(CardService.newIconImage()
         .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/folder_open_grey600_24dp.png'))
       .setTopLabel('Step 1')
-      .setText('<b>Select a file or folder in Drive</b>')
-      .setBottomLabel('DriveClarity opens automatically in this side panel and shows everyone who has access — direct, group and inherited.')
+      .setText('<b>Select a file or folder</b>')
+      .setBottomLabel('See who has access: direct, through a group, or inherited from a parent folder.')
       .setWrapText(true));
 
     appendSpacer(section);
@@ -65,20 +65,18 @@ const CleanupCard = (function () {
       .setStartIcon(CardService.newIconImage()
         .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/visibility_grey600_24dp.png'))
       .setTopLabel('Step 2')
-      .setText('<b>Audit sharing risks</b>')
-      .setBottomLabel('Spot public links, external collaborators and unexpected access in one glance.')
+      .setText('<b>Review sharing risks</b>')
+      .setBottomLabel('Public links, external collaborators, and unexpected access.')
       .setWrapText(true));
   }
 
-  // Hint above the homepage CTA — explains where the footer button
-  // leads so the action below feels grounded, not orphaned.
   function appendBulkCleanupHint(section) {
     section.addWidget(CardService.newDecoratedText()
       .setStartIcon(CardService.newIconImage()
         .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/manage_accounts_grey600_24dp.png'))
       .setTopLabel('Offboarding a teammate?')
       .setText('<b>Bulk cleanup</b>')
-      .setBottomLabel('Search a person and revoke their access to every file across your Drive in one click — use the button below.')
+      .setBottomLabel('Search by email and revoke their access across your Drive.')
       .setWrapText(true));
   }
 
@@ -105,7 +103,7 @@ const CleanupCard = (function () {
     } else {
       appendSpacer(main);
       main.addWidget(CardService.newTextParagraph()
-        .setText(muted('Group and inherited access cannot be revoked here — those need manual review.')));
+        .setText(muted('Group and inherited access cannot be revoked here. They need manual review.')));
     }
 
     builder.addSection(main);
@@ -151,16 +149,12 @@ const CleanupCard = (function () {
     const group     = matches.filter(function (m) { return m.source === 'group'; }).length;
     const inherited = matches.filter(function (m) { return m.source === 'inherited'; }).length;
 
-    // Use the photoLink from any matching permission (they describe the
-    // same Google account so the avatar will be identical across rows).
     const sample = matches.find(function (m) { return m.photoLink; }) || matches[0];
-    // Bold only the displayName; render the email in the body text
-    // colour (#4A5563, ~9:1 contrast) for proper WCAG AA readability.
-    // When no displayName is available, the email *is* the headline
-    // and gets the bold body treatment.
+    // Drive's native pattern: bold display name > caption email below.
+    // Falls back to email-only when no display name is available.
     const text = sample.displayName
       ? '<b>' + Formatters.escapeHtml(sample.displayName) + '</b>'
-        + '<br><font color="' + Formatters.COLORS.subtle + '">' + Formatters.escapeHtml(target) + '</font>'
+        + '<br><font color="' + Formatters.COLORS.caption + '">' + Formatters.escapeHtml(target) + '</font>'
       : '<b>' + Formatters.escapeHtml(target) + '</b>';
 
     section.addWidget(CardService.newDecoratedText()

@@ -66,6 +66,7 @@ const Formatters = (function () {
   // ─── Roles ──────────────────────────────────────────────────────────────
 
   function roleLabel(role) {
+    if (role == null || role === '') return 'Unknown';
     switch (role) {
       case 'owner':         return 'Owner';
       case 'organizer':     return 'Manager';
@@ -73,7 +74,7 @@ const Formatters = (function () {
       case 'writer':        return 'Editor';
       case 'commenter':     return 'Commenter';
       case 'reader':        return 'Viewer';
-      default:              return role;
+      default:              return String(role);
     }
   }
 
@@ -108,6 +109,7 @@ const Formatters = (function () {
       'application/vnd.google-apps.drawing':      'Drawing',
       'application/vnd.google-apps.shortcut':     'Shortcut',
       'application/pdf':                          'PDF',
+      'text/csv':                                 'CSV',
       'image/png':                                'PNG',
       'image/jpeg':                               'JPEG',
       'video/mp4':                                'Video'
@@ -134,6 +136,35 @@ const Formatters = (function () {
     return permission.emailAddress || '';
   }
 
+  /**
+   * Drive's native share dialog displays each principal as
+   *   topLabel  : role · source (small grey caps)
+   *   text      : display name (bold, primary identity)
+   *   bottomLabel: email (caption-style)
+   * The three helpers below produce exactly those three slots so the
+   * UI matches the Google convention with zero friction.
+   */
+  function accessRowName(permission) {
+    if (!permission) return 'Unknown';
+    if (permission.type === 'anyone') return 'Anyone with the link';
+    if (permission.type === 'domain') return permission.domain || 'Your organization';
+    return permission.displayName || permission.emailAddress || 'Unknown';
+  }
+
+  function accessRowEmail(permission) {
+    if (!permission) return '';
+    if (permission.type === 'anyone' || permission.type === 'domain') return '';
+    // Only show the email when it would not duplicate the name above.
+    if (permission.displayName && permission.emailAddress) return permission.emailAddress;
+    return '';
+  }
+
+  function accessRowMeta(permission, source) {
+    const parts = [roleLabel(permission && permission.role)];
+    if (source && source !== 'direct') parts.push(accessSourceLabel(source));
+    return parts.join(' · ');
+  }
+
   // ─── Misc ───────────────────────────────────────────────────────────────
 
   function escapeHtml(s) {
@@ -151,7 +182,7 @@ const Formatters = (function () {
    */
   function friendlyError(err) {
     const msg = (err && (err.message || err.toString())) || '';
-    try { console.error('DriveClarity error:', msg); } catch (_) {}
+    try { console.error('Drive Access Viewer error:', msg); } catch (_) {}
 
     if (/sufficient permissions/i.test(msg))                   return "You don't have permission to view this item's sharing settings.";
     if (/insufficientFilePermissions/i.test(msg))              return "You don't have edit access to this item.";
@@ -160,7 +191,7 @@ const Formatters = (function () {
     if (/sharingRateLimitExceeded/i.test(msg))                 return "Too many sharing changes at once. Please try again in a moment.";
     if (/Rate Limit Exceeded|userRateLimitExceeded|quota/i.test(msg)) return "Too many requests. Please try again in a moment.";
     if (/Forbidden|forbidden/i.test(msg))                      return "You don't have permission for this action.";
-    if (/Authorization|unauthorized/i.test(msg))               return "DriveClarity needs to be reauthorized.";
+    if (/Authorization|unauthorized/i.test(msg))               return "Drive Access Viewer needs to be reauthorized.";
     if (/Invalid field selection/i.test(msg))                  return "Something went wrong reading this item.";
     if (/timeout|timed out/i.test(msg))                        return "The request took too long. Try again with a smaller selection.";
     return "Something went wrong. Please try again.";
@@ -168,6 +199,16 @@ const Formatters = (function () {
 
   function pluralize(n, singular, plural) {
     return n + ' ' + (n === 1 ? singular : (plural || singular + 's'));
+  }
+
+  /**
+   * If the name fits within maxLen, return it unchanged. Otherwise
+   * truncate at the end with '…'. Simple rule: no line wrap = no cut.
+   */
+  function truncateIfWraps(name, maxLen) {
+    var s = (name == null) ? '' : String(name);
+    if (s.length <= maxLen) return s;
+    return s.substring(0, Math.max(1, maxLen - 1)) + '…';
   }
 
   function avatarFor(permission) {
@@ -201,6 +242,10 @@ const Formatters = (function () {
     escapeHtml: escapeHtml,
     friendlyError: friendlyError,
     pluralize: pluralize,
-    avatarFor: avatarFor
+    avatarFor: avatarFor,
+    accessRowName: accessRowName,
+    accessRowEmail: accessRowEmail,
+    accessRowMeta: accessRowMeta,
+    truncateIfWraps: truncateIfWraps
   };
 })();

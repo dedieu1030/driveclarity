@@ -91,7 +91,7 @@ const PermissionAnalyzer = (function () {
    * the name. Uses the proper a/an article for the role.
    */
   function explainAccess(p, source, file) {
-    const role = Formatters.roleLabel(p.role).toLowerCase();
+    const role = Formatters.roleLabel(p && p.role).toLowerCase();
     const article = /^[aeiou]/i.test(role) ? 'an' : 'a';
 
     if (p.role === 'owner') {

@@ -1,5 +1,5 @@
 /**
- * DriveClarity — entry triggers and global action callbacks.
+ * Drive Access Viewer — entry triggers and global action callbacks.
  *
  * Architecture:
  *   - Drive homepage (no file selected) → Cards.buildHomepageCard (user-search + bulk revoke)
@@ -21,6 +21,10 @@ function onItemsSelected(e) {
     const items = (e && e.drive && e.drive.selectedItems) || [];
     if (items.length === 0) {
       return Cards.buildHomepageCard({});
+    }
+    // Premium gate: full file analysis requires an active subscription.
+    if (!Subscription.isActive()) {
+      return PaywallCard.build(false);
     }
     const fileId = items[0].id;
     return Cards.buildMainCard(fileId, 'access');
@@ -176,7 +180,42 @@ function actionPopCard(e) {
  * "Manage user access" link inside file-context cards.
  */
 function actionOpenBulkCleanup(e) {
+  if (!Subscription.isActive()) {
+    return CardService.newActionResponseBuilder()
+      .setNavigation(CardService.newNavigation().pushCard(PaywallCard.build(false)))
+      .build();
+  }
   const card = Cards.buildBulkCleanupCard({});
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().pushCard(card))
+    .build();
+}
+
+/**
+ * Invalidate the cached subscription status and reload the paywall card
+ * (called after the user returns from Stripe Checkout / Portal).
+ */
+function actionRefreshSubscription(e) {
+  Subscription.invalidateCache();
+  const subscribed = Subscription.isActive();
+  if (subscribed) {
+    return CardService.newActionResponseBuilder()
+      .setNavigation(CardService.newNavigation().popCard())
+      .setNotification(CardService.newNotification().setText('Subscription active — enjoy Pro access!'))
+      .build();
+  }
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().updateCard(PaywallCard.build(false)))
+    .setNotification(CardService.newNotification().setText('No active subscription found.'))
+    .build();
+}
+
+/**
+ * Universal action: open the Upgrade / Manage subscription card.
+ */
+function actionOpenSubscription(e) {
+  const subscribed = Subscription.isActive();
+  const card = PaywallCard.build(subscribed);
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().pushCard(card))
     .build();

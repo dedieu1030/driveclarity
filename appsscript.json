@@ -17,7 +17,12 @@
     "https://www.googleapis.com/auth/drive.readonly",
     "https://www.googleapis.com/auth/drive",
     "https://www.googleapis.com/auth/userinfo.email",
-    "https://www.googleapis.com/auth/script.locale"
+    "https://www.googleapis.com/auth/script.locale",
+    "https://www.googleapis.com/auth/script.external_request",
+    "openid"
+  ],
+  "urlFetchWhitelist": [
+    "https://us-central1-YOUR_FIREBASE_PROJECT.cloudfunctions.net/"
   ],
   "addOns": {
     "common": {
@@ -34,6 +39,10 @@
       },
       "universalActions": [
         {
+          "label": "Upgrade / Manage subscription",
+          "runFunction": "actionOpenSubscription"
+        },
+        {
           "label": "About Drive Access Viewer",
           "openLink": "https://driveclarity.app/about"
         },
@@ -41,6 +50,11 @@
           "label": "Privacy & data handling",
           "openLink": "https://driveclarity.app/privacy"
         }
+      ],
+      "openLinkUrlPrefixes": [
+        "https://checkout.stripe.com/",
+        "https://billing.stripe.com/",
+        "https://driveclarity.app/"
       ]
     },
     "drive": {

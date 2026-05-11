@@ -27,13 +27,18 @@ const AccessCard = (function () {
   function appendContent(section, file, state) {
     state = state || {};
     // Visibility is already conveyed by the file hero at the top of
-    // the parent card, so the standalone visibility hero is dropped
-    // to avoid duplication.
-    appendFacts(section, file);
-    appendSpacer(section);
+    // the parent card; the owner is the first row of "Who can access".
+    // We only render appendFacts when it has something to say (e.g.
+    // the file lives in a shared drive — useful context).
+    const factsRendered = appendFacts(section, file);
+    if (factsRendered) {
+      appendSpacer(section);
+      appendSpacer(section);
+    }
     appendWhoCanAccess(section, file, state);
 
     if (file.parents && file.parents.length > 0) {
+      appendSpacer(section);
       appendSpacer(section);
       appendHierarchy(section, file);
     }
@@ -86,30 +91,23 @@ const AccessCard = (function () {
   }
 
   // ─── Key facts ─────────────────────────────────────────────────────────
+  //
+  // The owner is intentionally omitted here — "Who can access" lists
+  // every principal (owner included, sorted first by role priority),
+  // so a separate Owner field would be a duplicate. We only surface
+  // facts that the access list does NOT convey, currently the shared
+  // drive badge.
 
   function appendFacts(section, file) {
-    const owner = (file.owners && file.owners[0]) || null;
-    const ownerName = owner ? (owner.displayName || owner.emailAddress) : '—';
-
-    section.addWidget(CardService.newDecoratedText()
-      .setTopLabel('Owner')
-      .setText('<b>' + Formatters.escapeHtml(ownerName) + '</b>')
-      .setWrapText(true));
-
     if (file.driveId) {
       const drive = DriveService.getSharedDrive(file.driveId);
       section.addWidget(CardService.newDecoratedText()
         .setTopLabel('Shared drive')
         .setText(Formatters.escapeHtml(drive ? drive.name : 'Shared drive'))
         .setWrapText(true));
+      return true;
     }
-
-    if (file.webViewLink) {
-      section.addWidget(CardService.newTextButton()
-        .setText('Open in Drive')
-        .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-        .setOpenLink(CardService.newOpenLink().setUrl(file.webViewLink)));
-    }
+    return false;
   }
 
   // ─── Who can access ────────────────────────────────────────────────────
@@ -125,33 +123,38 @@ const AccessCard = (function () {
       return;
     }
 
+    // Discrete inline link (caption-coloured, underlined, no arrow) to
+    // avoid an outlined button competing with the people rows.
+    section.addWidget(CardService.newDecoratedText()
+      .setText('<font color="' + Formatters.COLORS.caption + '"><u>Why do they have access?</u></font>')
+      .setWrapText(false)
+      .setOnClickAction(CardService.newAction()
+        .setFunctionName('actionShowExplanations')
+        .setParameters({ fileId: file.id })));
+
     rows.forEach(function (row) {
       const p = row.permission;
+      const name = Formatters.escapeHtml(Formatters.accessRowName(p));
+      const email = Formatters.accessRowEmail(p);
+      const meta = Formatters.accessRowMeta(p, row.source);
+
       const widget = CardService.newDecoratedText()
         .setStartIcon(Formatters.avatarFor(p))
-        .setText('<b>' + Formatters.escapeHtml(Formatters.displayPrincipal(p)) + '</b>')
-        .setBottomLabel(Formatters.roleLabel(p.role) + ' · ' + Formatters.accessSourceLabel(row.source))
+        .setTopLabel(meta)
+        .setText('<b>' + name + '</b>')
         .setWrapText(true);
+      if (email) widget.setBottomLabel(email);
 
-      // Only attach the click-to-revoke affordance when the API rules
-      // allow it. Otherwise the row stays purely informational.
       if (PermissionAnalyzer.canRevokePermission(file, p)) {
         widget
           .setEndIcon(CardService.newIconImage()
-            .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/person_remove_grey600_24dp.png'))
+            .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/chevron_right_grey600_24dp.png'))
           .setOnClickAction(CardService.newAction()
             .setFunctionName('actionOpenRevokeRow')
             .setParameters({ fileId: file.id, permissionId: p.id }));
       }
       section.addWidget(widget);
     });
-
-    section.addWidget(CardService.newTextButton()
-      .setText('Why do they have access?')
-      .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
-      .setOnClickAction(CardService.newAction()
-        .setFunctionName('actionShowExplanations')
-        .setParameters({ fileId: file.id })));
   }
 
   /**
@@ -182,21 +185,19 @@ const AccessCard = (function () {
 
     const section = CardService.newCardSection();
 
-    const subtitle = perm.emailAddress
-      ? '<font color="' + Formatters.COLORS.caption + '">' + Formatters.escapeHtml(perm.emailAddress) + '</font>'
-      : '<font color="' + Formatters.COLORS.caption + '">' + Formatters.escapeHtml(Formatters.principalSubtitle(perm) || '') + '</font>';
-
-    section.addWidget(CardService.newDecoratedText()
+    const personWidget = CardService.newDecoratedText()
       .setStartIcon(Formatters.avatarFor(perm))
-      .setText('<b>' + Formatters.escapeHtml(Formatters.displayPrincipal(perm)) + '</b>'
-             + (perm.emailAddress || Formatters.principalSubtitle(perm) ? '<br>' + subtitle : ''))
-      .setWrapText(true));
+      .setText('<b>' + Formatters.escapeHtml(Formatters.accessRowName(perm)) + '</b>')
+      .setWrapText(true);
+    const personEmail = Formatters.accessRowEmail(perm);
+    if (personEmail) personWidget.setBottomLabel(personEmail);
+    section.addWidget(personWidget);
 
     appendSpacer(section);
     section.addWidget(title('Remove access'));
     section.addWidget(CardService.newTextParagraph()
       .setText('<font color="' + Formatters.COLORS.subtle + '">'
-             + 'This will remove their <b>' + Formatters.roleLabel(perm.role).toLowerCase() + '</b> access to <b>'
+             + 'This will remove their <b>' + Formatters.roleLabel(perm && perm.role).toLowerCase() + '</b> access to <b>'
              + Formatters.escapeHtml(file.name || 'this item') + '</b>. They will no longer be able to open it.'
              + '</font>'));
 
@@ -252,17 +253,23 @@ const AccessCard = (function () {
     } else {
       rows.forEach(function (row, i) {
         const p = row.permission;
-        const name = Formatters.escapeHtml(Formatters.displayPrincipal(p));
-        const sub = Formatters.principalSubtitle(p);
+        const name = Formatters.escapeHtml(Formatters.accessRowName(p));
+        const email = Formatters.accessRowEmail(p);
 
-        // Bold name > caption-colour email/sub-identifier > body explanation
+        // Three visual levels:
+        //  1. Name      — body weight, bold (<b>)
+        //  2. Email     — caption colour, slightly smaller (<font size="-1">)
+        //  3. Explanation — native bottomLabel (small + grey by default)
         const text = '<b>' + name + '</b>'
-                   + (sub ? '<br><font color="' + Formatters.COLORS.caption + '">' + Formatters.escapeHtml(sub) + '</font>' : '')
-                   + '<br><font color="' + Formatters.COLORS.subtle + '">' + Formatters.escapeHtml(row.why) + '</font>';
+                   + (email
+                      ? '<br><font color="' + Formatters.COLORS.caption + '"><font size="-1">'
+                        + Formatters.escapeHtml(email) + '</font></font>'
+                      : '');
 
         section.addWidget(CardService.newDecoratedText()
           .setStartIcon(Formatters.avatarFor(p))
           .setText(text)
+          .setBottomLabel(row.why)
           .setWrapText(true));
 
         if (i < rows.length - 1) appendSpacer(section);
@@ -278,37 +285,56 @@ const AccessCard = (function () {
   function appendHierarchy(section, file) {
     section.addWidget(title('Where this lives'));
 
-    const tree = renderTree(file);
-    section.addWidget(CardService.newTextParagraph()
-      .setText('<font face="monospace" color="' + Formatters.COLORS.subtle + '">' + Formatters.escapeHtml(tree) + '</font>'));
+    var chain = buildChain(file);
+
+    chain.forEach(function (node, i) {
+      var indent = '\u00A0\u00A0'.repeat(i);
+      var branch = i === 0 ? '' : '└\u00A0';
+      var prefix = indent + branch;
+
+      var text = '<font color="' + Formatters.COLORS.subtle + '">'
+               + Formatters.escapeHtml(prefix)
+               + '<b>' + Formatters.escapeHtml(node.name) + '</b></font>';
+
+      var row = CardService.newDecoratedText()
+        .setText(text)
+        .setWrapText(true);
+      if (node.link) {
+        row.setOpenLink(CardService.newOpenLink().setUrl(node.link));
+      }
+      section.addWidget(row);
+    });
 
     section.addWidget(CardService.newTextParagraph()
       .setText(muted('This item may inherit permissions from its parent folders.')));
   }
 
-  function renderTree(file) {
-    const lines = [];
-    let current = file;
-    const chain = [{ name: file.name, isFile: true }];
-    let safety = 0;
+  function buildChain(file) {
+    var current = file;
+    var chain = [{
+      name: file.name,
+      link: file.webViewLink || '',
+      mimeType: file.mimeType || '',
+      isFile: true
+    }];
+    var safety = 0;
 
     while (current && current.parents && current.parents.length && safety < 6) {
       try {
-        const parent = DriveService.getFile(current.parents[0]);
-        chain.unshift({ name: parent.name, isFile: false });
+        var parent = DriveService.getFile(current.parents[0]);
+        chain.unshift({
+          name: parent.name,
+          link: parent.webViewLink || '',
+          mimeType: parent.mimeType || '',
+          isFile: false
+        });
         current = parent;
         safety++;
       } catch (e) {
         break;
       }
     }
-
-    chain.forEach(function (node, i) {
-      const indent = '  '.repeat(i);
-      const branch = i === 0 ? '' : '└── ';
-      lines.push(indent + branch + node.name);
-    });
-    return lines.join('\n');
+    return chain;
   }
 
   // ─── Style helpers ─────────────────────────────────────────────────────

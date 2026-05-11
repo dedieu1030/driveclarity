@@ -78,11 +78,14 @@ const AuditCard = (function () {
     } else {
       accessRows.forEach(function (row) {
         const p = row.permission;
-        section.addWidget(CardService.newDecoratedText()
+        const w = CardService.newDecoratedText()
           .setStartIcon(Formatters.avatarFor(p))
-          .setText('<b>' + Formatters.escapeHtml(Formatters.displayPrincipal(p)) + '</b>')
-          .setBottomLabel(Formatters.roleLabel(p.role) + ' · ' + row.sourceLabel)
-          .setWrapText(true));
+          .setTopLabel(Formatters.accessRowMeta(p, row.source))
+          .setText('<b>' + Formatters.escapeHtml(Formatters.accessRowName(p)) + '</b>')
+          .setWrapText(true);
+        const email = Formatters.accessRowEmail(p);
+        if (email) w.setBottomLabel(email);
+        section.addWidget(w);
       });
     }
   }
@@ -280,11 +283,14 @@ const AuditCard = (function () {
     } else {
       accessRows.forEach(function (row) {
         const p = row.permission;
-        main.addWidget(CardService.newDecoratedText()
+        const w = CardService.newDecoratedText()
           .setStartIcon(Formatters.avatarFor(p))
-          .setText('<b>' + Formatters.escapeHtml(Formatters.displayPrincipal(p)) + '</b>')
-          .setBottomLabel(Formatters.roleLabel(p.role) + ' · ' + row.sourceLabel)
-          .setWrapText(true));
+          .setTopLabel(Formatters.accessRowMeta(p, row.source))
+          .setText('<b>' + Formatters.escapeHtml(Formatters.accessRowName(p)) + '</b>')
+          .setWrapText(true);
+        const email = Formatters.accessRowEmail(p);
+        if (email) w.setBottomLabel(email);
+        main.addWidget(w);
       });
     }
 
@@ -315,7 +321,7 @@ const AuditCard = (function () {
     var csv = isFolder ? exportFolder(root, stamp) : exportSingleFile(root);
 
     var file = DriveApp.createFile(
-      'DriveClarity_audit_' + stamp + '.csv',
+      'Drive Access Viewer_audit_' + stamp + '.csv',
       csv,
       MimeType.CSV
     );
