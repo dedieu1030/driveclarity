@@ -22,7 +22,7 @@
   "addOns": {
     "common": {
       "name": "Drive Access Viewer",
-      "logoUrl": "https://raw.githubusercontent.com/dedieu1030/driveclarity/main/addon-logo.png",
+      "logoUrl": "https://raw.githubusercontent.com/dedieu1030/driveclarity/main/addon-logo.png?v=f49aadb",
       "useLocaleFromApp": true,
       "layoutProperties": {
         "primaryColor": "#1B4965",
