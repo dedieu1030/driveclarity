@@ -1,0 +1,5 @@
+# Firebase backend (deploy with `firebase deploy`, not clasp)
+functions/**
+
+# Dependencies
+node_modules/**
