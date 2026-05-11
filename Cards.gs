@@ -1,5 +1,5 @@
 /**
- * Cards.gs — Top-level card orchestration for DriveClarity.
+ * Cards.gs — Top-level card orchestration for Drive Access Viewer.
  *
  * Responsible for:
  *  - Building the main card frame (header + tab bar + active section)
@@ -10,6 +10,10 @@
  */
 
 const Cards = (function () {
+
+  /** Public logo URL — keep in sync with appsscript.json addOns.common.logoUrl. */
+  const ADD_ON_LOGO_URL =
+    'https://raw.githubusercontent.com/dedieu1030/driveclarity/main/Logo-add-on.png';
 
   // ─── Public ─────────────────────────────────────────────────────────────
 
@@ -35,12 +39,16 @@ const Cards = (function () {
     // typography (bold titles), spacing (empty paragraphs as spacers)
     // and muted secondary text — Material's "calm document" guidance.
     const builder = CardService.newCardBuilder()
-      .setName('DriveClarityMain_' + activeSection);
+      .setName('Drive Access ViewerMain_' + activeSection);
 
     const section = CardService.newCardSection();
     appendFileHero(section, file);
     appendSpacer(section);
     appendTabBar(section, fileId, activeSection);
+    // Extra breathing room between the tab bar and the section content
+    // — the tab bar functions as a chapter break, so a single spacer
+    // looked too tight in user testing.
+    appendSpacer(section);
     appendSpacer(section);
 
     if (activeSection === 'access') {
@@ -61,14 +69,14 @@ const Cards = (function () {
    */
   function buildHomepageCard(state) {
     state = state || {};
-    // No CardHeader: the Drive side panel already shows "DriveClarity"
+    // No CardHeader: the Drive side panel already shows "Drive Access Viewer"
     // in its system chrome. A second title/icon inside the card body
     // would be pure redundancy.
     //
     // Homepage's only mission: explain the tool. Bulk cleanup lives in
     // its own pushed card, accessed via the fixed-footer CTA below.
     const builder = CardService.newCardBuilder()
-      .setName('DriveClarityHome');
+      .setName('Drive Access ViewerHome');
 
     CleanupCard.addHomepageHeroSections(builder);
     builder.setFixedFooter(CleanupCard.buildHomepageFooter());
@@ -88,7 +96,7 @@ const Cards = (function () {
     // system back arrow makes the navigation context obvious. Adding
     // a header would only repeat what the user already knows.
     const builder = CardService.newCardBuilder()
-      .setName('DriveClarityBulk');
+      .setName('Drive Access ViewerBulk');
 
     CleanupCard.addBulkCleanupSections(builder, state);
 
@@ -103,16 +111,22 @@ const Cards = (function () {
    */
   function buildEmptyStateCard(message) {
     const card = CardService.newCardBuilder()
-      .setName('DriveClarityEmpty');
+      .setName('DriveAccessViewer_Empty');
 
     const section = CardService.newCardSection();
 
-    section.addWidget(CardService.newImage()
-      .setImageUrl('https://www.gstatic.com/images/icons/material/system/2x/verified_user_grey600_48dp.png')
-      .setAltText('DriveClarity'));
+    section.addWidget(CardService.newGrid()
+      .setNumColumns(1)
+      .addItem(CardService.newGridItem()
+        .setIdentifier('logo')
+        .setImage(CardService.newImageComponent()
+          .setImageUrl(ADD_ON_LOGO_URL)
+          .setAltText('Drive Access Viewer'))
+        .setLayout(CardService.GridItemLayout.TEXT_BELOW)
+        .setTextAlignment(CardService.HorizontalAlignment.CENTER)));
 
     section.addWidget(CardService.newTextParagraph()
-      .setText('<b>DriveClarity</b>'));
+      .setText('<b>Drive Access Viewer</b>'));
 
     section.addWidget(CardService.newTextParagraph()
       .setText(message));
@@ -124,18 +138,18 @@ const Cards = (function () {
 
     section.addWidget(CardService.newDecoratedText()
       .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.PERSON))
-      .setText('See who can access')
-      .setBottomLabel('Direct, group and inherited permissions explained.'));
+      .setText('See who has access')
+      .setBottomLabel('Direct, through a group, or inherited.'));
 
     section.addWidget(CardService.newDecoratedText()
       .setStartIcon(CardService.newIconImage().setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/search_grey600_24dp.png'))
-      .setText('Audit public & external sharing')
-      .setBottomLabel('Spot risky links and external collaborators.'));
+      .setText('Audit external sharing')
+      .setBottomLabel('Public links and external collaborators.'));
 
     section.addWidget(CardService.newDecoratedText()
       .setStartIcon(CardService.newIconImage().setIcon(CardService.Icon.MULTIPLE_PEOPLE))
-      .setText('Clean up departing users')
-      .setBottomLabel('Bulk revoke access for offboarded employees.'));
+      .setText('Bulk cleanup')
+      .setBottomLabel('Revoke a person’s access across your Drive.'));
 
     card.addSection(section);
     return card.build();
@@ -147,7 +161,7 @@ const Cards = (function () {
    */
   function buildErrorCard(err) {
     const card = CardService.newCardBuilder()
-      .setName('DriveClarityError');
+      .setName('Drive Access ViewerError');
 
     const section = CardService.newCardSection();
     section.addWidget(CardService.newDecoratedText()
@@ -160,7 +174,7 @@ const Cards = (function () {
       .setText(Formatters.escapeHtml(Formatters.friendlyError(err))));
 
     section.addWidget(CardService.newTextParagraph()
-      .setText('<font color="' + Formatters.COLORS.muted + '">If this keeps happening, try reopening DriveClarity or selecting the file again.</font>'));
+      .setText('<font color="' + Formatters.COLORS.muted + '">If this keeps happening, try reopening Drive Access Viewer or selecting the file again.</font>'));
 
     card.addSection(section);
     return card.build();
@@ -182,11 +196,19 @@ const Cards = (function () {
                + '<br><font color="' + visColour + '">' + visLabel + '</font>'
                + ' <font color="' + Formatters.COLORS.muted + '">· ' + Formatters.escapeHtml(typeLabel) + '</font>';
 
-    section.addWidget(CardService.newDecoratedText()
+    const widget = CardService.newDecoratedText()
       .setStartIcon(CardService.newIconImage()
         .setIconUrl(file.iconLink || 'https://www.gstatic.com/images/icons/material/system/2x/insert_drive_file_grey600_24dp.png'))
       .setText(text)
-      .setWrapText(true));
+      .setWrapText(true);
+
+    // The whole file hero row is the link to Drive — no end icon, the
+    // file title itself is the affordance, matching native Drive UX.
+    if (file.webViewLink) {
+      widget.setOpenLink(CardService.newOpenLink().setUrl(file.webViewLink));
+    }
+
+    section.addWidget(widget);
   }
 
   /**

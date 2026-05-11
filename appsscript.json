@@ -21,8 +21,8 @@
   ],
   "addOns": {
     "common": {
-      "name": "DriveClarity",
-      "logoUrl": "https://www.gstatic.com/images/icons/material/system/2x/verified_user_black_24dp.png",
+      "name": "Drive Access Viewer",
+      "logoUrl": "https://raw.githubusercontent.com/dedieu1030/driveclarity/main/Logo-add-on.png",
       "useLocaleFromApp": true,
       "layoutProperties": {
         "primaryColor": "#1B4965",
@@ -34,7 +34,7 @@
       },
       "universalActions": [
         {
-          "label": "About DriveClarity",
+          "label": "About Drive Access Viewer",
           "openLink": "https://driveclarity.app/about"
         },
         {
