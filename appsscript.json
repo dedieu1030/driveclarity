@@ -22,7 +22,7 @@
     "openid"
   ],
   "urlFetchWhitelist": [
-    "https://us-central1-YOUR_FIREBASE_PROJECT.cloudfunctions.net/"
+    "https://us-central1-driveaccessviewer-dedieu.cloudfunctions.net/"
   ],
   "addOns": {
     "common": {

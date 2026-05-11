@@ -40,12 +40,13 @@ function cors(res) {
 // We call Google's tokeninfo endpoint — no external library needed.
 // Works with ScriptApp.getIdentityToken() and standard Google ID tokens.
 async function verifyGoogleToken(idToken) {
-  const { default: fetch } = await import('node-fetch');
   const resp = await fetch(
     `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`
   );
   const payload = await resp.json();
-  if (payload.error || !payload.email_verified) {
+  const verified =
+    payload.email_verified === true || payload.email_verified === 'true';
+  if (payload.error || !verified || !payload.email) {
     throw new Error('Invalid or unverified Google token');
   }
   return payload; // { email, sub, email_verified, ... }
@@ -69,7 +70,7 @@ async function getOrCreateCustomer(stripe, email) {
 // 1. checkSubscription
 // ═══════════════════════════════════════════════════════════════════════════
 exports.checkSubscription = onRequest(
-  { secrets: [STRIPE_SECRET_KEY] },
+  { region: 'us-central1', invoker: 'public' },
   async (req, res) => {
     cors(res);
     if (req.method === 'OPTIONS') return res.status(204).send('');
@@ -103,7 +104,11 @@ exports.checkSubscription = onRequest(
 // 2. createCheckoutSession   (allow_promotion_codes: true)
 // ═══════════════════════════════════════════════════════════════════════════
 exports.createCheckoutSession = onRequest(
-  { secrets: [STRIPE_SECRET_KEY, STRIPE_PRICE_ID, APP_URL] },
+  {
+    region : 'us-central1',
+    invoker: 'public',
+    secrets: [STRIPE_SECRET_KEY, STRIPE_PRICE_ID, APP_URL],
+  },
   async (req, res) => {
     cors(res);
     if (req.method === 'OPTIONS') return res.status(204).send('');
@@ -144,7 +149,11 @@ exports.createCheckoutSession = onRequest(
 // 3. createPortalSession  (manage / cancel subscription)
 // ═══════════════════════════════════════════════════════════════════════════
 exports.createPortalSession = onRequest(
-  { secrets: [STRIPE_SECRET_KEY, APP_URL] },
+  {
+    region : 'us-central1',
+    invoker: 'public',
+    secrets: [STRIPE_SECRET_KEY, APP_URL],
+  },
   async (req, res) => {
     cors(res);
     if (req.method === 'OPTIONS') return res.status(204).send('');
@@ -181,7 +190,11 @@ exports.createPortalSession = onRequest(
 // 4. stripeWebhook  (receive events from Stripe → update Firestore)
 // ═══════════════════════════════════════════════════════════════════════════
 exports.stripeWebhook = onRequest(
-  { secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
+  {
+    region : 'us-central1',
+    secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET],
+    invoker: 'public',
+  },
   async (req, res) => {
     if (req.method !== 'POST') return res.status(405).send('Method not allowed');
 
