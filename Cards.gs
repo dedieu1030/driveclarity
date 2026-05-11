@@ -13,7 +13,7 @@ const Cards = (function () {
 
   /** Public logo URL — keep in sync with appsscript.json addOns.common.logoUrl. */
   const ADD_ON_LOGO_URL =
-    'https://raw.githubusercontent.com/dedieu1030/driveclarity/main/Sans%20titre%20(96%20x%2096%20px).png';
+    'https://raw.githubusercontent.com/dedieu1030/driveclarity/main/addon-logo.png';
 
   // ─── Public ─────────────────────────────────────────────────────────────
 
@@ -115,15 +115,16 @@ const Cards = (function () {
 
     const section = CardService.newCardSection();
 
-    section.addWidget(CardService.newGrid()
-      .setNumColumns(1)
-      .addItem(CardService.newGridItem()
-        .setIdentifier('logo')
-        .setImage(CardService.newImageComponent()
+    // Grid thumbnails stay small; a full-width Image in a centered column uses
+    // the panel width (Card Service has no pixel size for images).
+    section.addWidget(CardService.newColumns()
+      .addColumn(CardService.newColumn()
+        .setHorizontalSizeStyle(CardService.HorizontalSizeStyle.FILL_AVAILABLE_SPACE)
+        .setHorizontalAlignment(CardService.HorizontalAlignment.CENTER)
+        .addWidget(CardService.newImage()
           .setImageUrl(ADD_ON_LOGO_URL)
-          .setAltText('Drive Access Viewer'))
-        .setLayout(CardService.GridItemLayout.TEXT_BELOW)
-        .setTextAlignment(CardService.HorizontalAlignment.CENTER)));
+          .setAltText('Drive Access Viewer')))
+      .setWrapStyle(CardService.WrapStyle.WRAP));
 
     section.addWidget(CardService.newTextParagraph()
       .setText('<b>Drive Access Viewer</b>'));
