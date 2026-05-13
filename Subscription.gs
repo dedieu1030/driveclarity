@@ -1,7 +1,7 @@
 /**
- * Subscription.gs — Firebase / Stripe subscription state for Drive Access Viewer.
+ * Subscription.gs — Stripe subscription state for Access Manager & Bulk Revoke.
  *
- * All network calls hit Firebase Cloud Functions (functions/index.js).
+ * All network calls hit Stripe API directly. No external backend required.
  * Results are cached in UserCache for 5 minutes to minimise latency.
  *
  * Public API:
@@ -18,34 +18,49 @@ const Subscription = (function () {
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
 
-  function baseUrl() {
-    return Config.FIREBASE_FUNCTIONS_BASE_URL();
-  }
-
-  /** Google OIDC token identifying the current Apps Script user. */
-  function idToken() {
-    return ScriptApp.getIdentityToken();
+  function userEmail() {
+    return Session.getActiveUser().getEmail();
   }
 
   /**
-   * POST to a Cloud Function and return the parsed JSON response.
-   * Returns null on any network / auth error.
+   * Helper to call Stripe API directly.
    */
-  function callFunction(path, extra) {
-    try {
-      const body = Object.assign({ idToken: idToken() }, extra || {});
-      const resp = UrlFetchApp.fetch(baseUrl() + path, {
-        method            : 'post',
-        contentType       : 'application/json',
-        payload           : JSON.stringify(body),
-        muteHttpExceptions: true,
-      });
-      if (resp.getResponseCode() !== 200) return null;
-      return JSON.parse(resp.getContentText());
-    } catch (e) {
-      console.error('Subscription.callFunction error:', path, e.message);
-      return null;
+  function callStripe(method, path, payloadString) {
+    const key = Config.STRIPE_SECRET_KEY();
+    if (!key) return null;
+    
+    const options = {
+      method: method,
+      headers: {
+        "Authorization": "Bearer " + key,
+      },
+      muteHttpExceptions: true
+    };
+    
+    if (payloadString && method === 'post') {
+      options.payload = payloadString;
     }
+    
+    const url = "https://api.stripe.com/v1/" + path;
+    const response = UrlFetchApp.fetch(url, options);
+    if (response.getResponseCode() >= 400) {
+       console.error("Stripe API error (" + path + "):", response.getContentText());
+       return null;
+    }
+    return JSON.parse(response.getContentText());
+  }
+
+  /**
+   * Find customer by email exactly. Returns customer ID or null.
+   */
+  function getCustomerId() {
+    const email = userEmail();
+    // Stripe supports exact email match without full search indexing delays
+    const res = callStripe('get', "customers?email=" + encodeURIComponent(email));
+    if (res && res.data && res.data.length > 0) {
+      return res.data[0].id; // Returns first matching customer
+    }
+    return null;
   }
 
   // ─── Public ────────────────────────────────────────────────────────────────
@@ -59,19 +74,58 @@ const Subscription = (function () {
     const cached = cache.get(CACHE_KEY);
     if (cached !== null) return cached === 'true';
 
-    const data       = callFunction('/checkSubscription');
-    const subscribed = !!(data && data.subscribed);
+    let subscribed = false;
+    const customerId = getCustomerId();
+    
+    if (customerId) {
+      // Check for active or trialing subscriptions for this customer
+      const res = callStripe('get', "subscriptions?customer=" + customerId + "&status=all");
+      if (res && res.data) {
+        for (let i = 0; i < res.data.length; i++) {
+          const status = res.data[i].status;
+          if (status === 'active' || status === 'trialing') {
+            subscribed = true;
+            break;
+          }
+        }
+      }
+    }
+
     cache.put(CACHE_KEY, String(subscribed), CACHE_TTL_S);
     return subscribed;
   }
 
   /**
    * Returns the Stripe Checkout Session URL for this user.
-   * allow_promotion_codes is enabled server-side.
+   * allow_promotion_codes is enabled.
    */
   function getCheckoutUrl() {
-    const data = callFunction('/createCheckoutSession');
-    return (data && data.url) || null;
+    const email = userEmail();
+    const priceId = Config.STRIPE_PRICE_ID();
+    const appUrl = Config.APP_URL();
+    
+    if (!priceId) return null;
+
+    const customerId = getCustomerId();
+    
+    // Build Stripe payload manually to avoid nested object encoding issues
+    let payload = 'payment_method_types[0]=card' +
+           '&line_items[0][price]=' + encodeURIComponent(priceId) +
+           '&line_items[0][quantity]=1' +
+           '&mode=subscription' +
+           '&allow_promotion_codes=true' +
+           '&client_reference_id=' + encodeURIComponent(email) +
+           '&success_url=' + encodeURIComponent(appUrl) +
+           '&cancel_url=' + encodeURIComponent(appUrl);
+           
+    if (customerId) {
+      payload += '&customer=' + encodeURIComponent(customerId);
+    } else {
+      payload += '&customer_email=' + encodeURIComponent(email);
+    }
+
+    const res = callStripe('post', "checkout/sessions", payload);
+    return res ? res.url : null;
   }
 
   /**
@@ -79,8 +133,15 @@ const Subscription = (function () {
    * cancel their subscription.
    */
   function getPortalUrl() {
-    const data = callFunction('/createPortalSession');
-    return (data && data.url) || null;
+    const customerId = getCustomerId();
+    if (!customerId) return null;
+    
+    const appUrl = Config.APP_URL();
+    const payload = 'customer=' + encodeURIComponent(customerId) +
+                    '&return_url=' + encodeURIComponent(appUrl);
+                    
+    const res = callStripe('post', "billing_portal/sessions", payload);
+    return res ? res.url : null;
   }
 
   /** Force a fresh subscription check on the next isActive() call. */

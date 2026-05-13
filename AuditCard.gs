@@ -65,7 +65,7 @@ const AuditCard = (function () {
       section.addWidget(CardService.newDecoratedText()
         .setTopLabel('External collaborators')
         .setText('<b>' + sig.externalCount + '</b>')
-        .setBottomLabel(sig.externalDomains.join(', ') || '—'));
+        .setBottomLabel(sig.externalDomains.join(', ') || 'None'));
     }
 
     appendSpacer(section);
@@ -267,7 +267,7 @@ const AuditCard = (function () {
     main.addWidget(CardService.newDecoratedText()
       .setTopLabel('External collaborators')
       .setText('<b>' + sig.externalCount + '</b>')
-      .setBottomLabel(sig.externalDomains.join(', ') || '—'));
+      .setBottomLabel(sig.externalDomains.join(', ') || 'None'));
 
     main.addWidget(CardService.newDecoratedText()
       .setTopLabel('Public link')
@@ -321,7 +321,7 @@ const AuditCard = (function () {
     var csv = isFolder ? exportFolder(root, stamp) : exportSingleFile(root);
 
     var file = DriveApp.createFile(
-      'Drive Access Viewer_audit_' + stamp + '.csv',
+      'Access Manager & Bulk Revoke_audit_' + stamp + '.csv',
       csv,
       MimeType.CSV
     );

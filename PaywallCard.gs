@@ -14,39 +14,65 @@ const PaywallCard = (function () {
     muted   : '#6B7280',
   };
 
+  function title(text) {
+    return CardService.newTextParagraph()
+      .setText('<b>' + Formatters.escapeHtml(text) + '</b>');
+  }
+
+  function appendSpacer(section) {
+    section.addWidget(CardService.newTextParagraph().setText(' '));
+  }
+
   // ─── Public ────────────────────────────────────────────────────────────────
 
   /**
    * Build the upgrade / subscription-management card.
    *
-   * If the user is NOT subscribed  → show Subscribe CTA + feature list.
-   * If the user IS subscribed      → show "Manage subscription" only
-   *   (shouldn't normally be reached but acts as a safety net).
+   * @param {boolean} subscribed    Current subscription status.
+   * @param {string}  reason        Optional key: 'limit' | 'feature' | 'none'
    */
-  function build(subscribed) {
+  function build(subscribed, reason) {
     const card = CardService.newCardBuilder().setName('DriveAccessViewer_Paywall');
+
+    let subtitle = subscribed ? 'Your subscription is active' : 'Unlock full access control';
+    if (reason === 'limit') {
+      subtitle = 'Monthly limit reached (10/10)';
+    } else if (reason === 'feature') {
+      subtitle = 'Upgrade to unlock this feature';
+    }
 
     // Header
     const header = CardService.newCardHeader()
-      .setTitle('Drive Access Viewer Pro')
-      .setSubtitle(subscribed ? 'Your subscription is active' : 'Unlock full access control')
+      .setTitle('Access Manager & Bulk Revoke Pro')
+      .setSubtitle(subtitle)
       .setImageUrl('https://raw.githubusercontent.com/dedieu1030/driveclarity/5a0b96f/addon-logo.png')
       .setImageStyle(CardService.ImageStyle.SQUARE);
     card.setHeader(header);
 
-    if (!subscribed) {
-      card.addSection(_buildUpgradeSection());
+    // Single section to avoid forced dividers
+    const mainSection = CardService.newCardSection();
+
+    if (reason === 'limit') {
+      mainSection.addWidget(CardService.newTextParagraph()
+        .setText('You have used your 10 free monthly audits. Upgrade to Pro for unlimited usage and full cleanup tools.'));
+      appendSpacer(mainSection);
     }
 
-    card.addSection(_buildManageSection(subscribed));
+    if (!subscribed) {
+      _appendUpgradeContent(mainSection);
+      appendSpacer(mainSection);
+    }
+
+    _appendManageContent(mainSection, subscribed);
+
+    card.addSection(mainSection);
     return card.build();
   }
 
   // ─── Internal ──────────────────────────────────────────────────────────────
 
-  function _buildUpgradeSection() {
-    const section = CardService.newCardSection()
-      .setHeader('What you unlock');
+  function _appendUpgradeContent(section) {
+    section.addWidget(title('What you unlock'));
 
     const features = [
       { icon: CardService.Icon.PERSON,          text: 'Full per-file access viewer' },
@@ -63,17 +89,17 @@ const PaywallCard = (function () {
       );
     });
 
-    section.addWidget(CardService.newDivider());
+    appendSpacer(section);
 
-    // Primary CTA — Stripe Checkout (promo codes enabled server-side)
+    // Primary CTA — Stripe Checkout (promo codes enabled)
     const checkoutUrl = Subscription.getCheckoutUrl();
     if (checkoutUrl) {
       section.addWidget(
         CardService.newTextButton()
-          .setText('Subscribe — Get Pro Access')
+          .setText('Get Pro access')
           .setOpenLink(CardService.newOpenLink().setUrl(checkoutUrl))
           .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
-          .setBackgroundColor('#1B4965')
+          .setBackgroundColor(COLORS.primary)
       );
       section.addWidget(
         CardService.newTextParagraph()
@@ -86,24 +112,21 @@ const PaywallCard = (function () {
       section.addWidget(
         CardService.newTextParagraph()
           .setText(
-            '<font color="' + COLORS.muted + '">Could not load checkout — ' +
-            'make sure FIREBASE_FUNCTIONS_BASE_URL is set in Script Properties.</font>'
+            '<font color="' + COLORS.muted + '">Could not load checkout. ' +
+            'make sure STRIPE_SECRET_KEY and STRIPE_PRICE_ID are set in Script Properties.</font>'
           )
       );
     }
-
-    return section;
   }
 
-  function _buildManageSection(subscribed) {
-    const section = CardService.newCardSection()
-      .setHeader(subscribed ? 'Subscription' : 'Already subscribed?');
+  function _appendManageContent(section, subscribed) {
+    section.addWidget(title(subscribed ? 'Subscription' : 'Already subscribed?'));
 
     const portalUrl = Subscription.getPortalUrl();
     if (portalUrl) {
       section.addWidget(
         CardService.newTextButton()
-          .setText('Manage / Cancel subscription')
+          .setText('Manage subscription')
           .setOpenLink(CardService.newOpenLink().setUrl(portalUrl))
       );
     }
@@ -111,13 +134,16 @@ const PaywallCard = (function () {
     // Refresh subscription cache after returning from Stripe
     section.addWidget(
       CardService.newTextButton()
-        .setText('Refresh subscription status')
+        .setText('Refresh status')
         .setOnClickAction(
           CardService.newAction().setFunctionName('actionRefreshSubscription')
         )
     );
-
-    return section;
+    
+    appendSpacer(section);
+    section.addWidget(CardService.newDecoratedText()
+      .setText('<font color="' + COLORS.muted + '">Need help? <u>Contact Support</u></font>')
+      .setOpenLink(CardService.newOpenLink().setUrl('https://tally.so/r/EkvMx2')));
   }
 
   return { build };

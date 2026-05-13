@@ -1,0 +1,91 @@
+PROJECT OVERVIEW: DRIVE ACCESS VIEWER
+====================================
+
+GOAL
+----
+Drive Access Viewer is a professional Google Workspace add-on designed to provide instant, granular visibility into Google Drive permissions. It helps users identify and fix sharing risks (public links, external collaborators, inherited access) that are otherwise hidden in the native Google Drive interface.
+
+BUSINESS MODEL (FREEMIUM)
+-------------------------
+- Free Tier: 10 "audits" (file views or searches) per month.
+- Pro Tier ($3.00/month):
+    - Unlimited monthly audits.
+    - Bulk Revocation (remove a person from hundreds of files at once).
+    - Recursive Folder Audit (deep scan of sub-folders and files).
+    - CSV Export (professional reporting).
+    - Advanced Risk Filtering.
+
+PAGE-BY-PAGE BREAKDOWN
+----------------------
+
+1. HOMEPAGE (Drive root - No file selected)
+- Purpose: Onboarding and Entry point for offboarding.
+- Features: 
+    - "How it works" hero section.
+    - Quota Tracker: Displays "X / 10 free audits remaining" (bold numbers).
+    - "Bulk Cleanup" CTA: Primary entry for removing a teammate from the entire Drive.
+    - Fixed Footer: Toggle to the Bulk Cleanup flow or "Support" (Tally form).
+
+2. ACCESS TAB (Contextual - File or Folder selected)
+- Purpose: Immediate visibility for a specific item.
+- Features:
+    - Visibility Hero: Bold badge (Public, External, Internal, Private) with human-readable captions.
+    - "Who can access": Clean list of all principals (Users, Groups, Domains) with avatars.
+    - Inheritance Logic: Explains *why* someone has access (e.g., "Inherited from [Folder Name]").
+    - Single Revoke (PRO): Direct button to remove a specific person.
+
+3. AUDIT TAB (Contextual - Folder selected - PRO ONLY)
+- Purpose: Deep recursive security scan.
+- Features:
+    - Scans all nested items within a folder.
+    - Risk Filters: Toggle "Public", "External", or "Internal" to isolate risks.
+    - CSV Export: Generate a full report of all permissions in the folder hierarchy.
+    - Investigation Detail: Click any flagged item to see its specific permission structure.
+
+4. BULK CLEANUP PAGE (Search flow)
+- Purpose: Teammate offboarding.
+- Features:
+    - Search by Email: Scans the user's Drive for any file accessible by a specific target.
+    - Results Summary: Breakdown of Direct, Group, and Inherited permissions found.
+    - Selection Engine: Checkboxes to select specific files or "Select all".
+    - Smart Footer: Shows "Revoke selected (X)" for Pro users, or "Upgrade to revoke (X)" for Free users.
+
+5. PAYWALL / SUBSCRIPTION CARD
+- Purpose: Conversion and management.
+- Features:
+    - Dynamic Context: Changes text based on the trigger (e.g., "Monthly limit reached" vs "Feature locked").
+    - Feature List: Clear value proposition of Pro features.
+    - Stripe Integration: Direct "Get Pro access" button using Stripe Checkout.
+    - Manage Subscription: Link to Stripe Customer Portal.
+    - "Refresh status": Instantly validates payment to unlock features.
+
+TECHNICAL STACK
+---------------
+- Platform: Google Apps Script (Serverless).
+- Backend: None (Least-privilege, data never leaves the Google ecosystem).
+- Payments: Stripe API (UrlFetchApp integration).
+- UI: CardService (Native Google Workspace UI).
+- Storage: PropertiesService (Subscription cache and Quota tracking).
+
+TONE & STYLE
+------------
+- Human-centric: No AI-style em-dashes (—). No robotic phrasing.
+- Professional yet accessible: Avoids heavy technical jargon (e.g., "Permissions" -> "Who can access").
+- Confidence-inspiring: Uses bold, affirmative language for security findings.
+- High-Fidelity: Every card feels like a native, premium extension of the Google Workspace ecosystem, not a third-party plugin.
+
+VISUAL IDENTITY
+---------------
+- Primary Color (Brand): #1B4965 (Deep Navy Blue - Trust, Security, Calm).
+- Accent Color: #5FA8D3 (Sky Blue - Energy, Clarity).
+- Semantic Colors: 
+    - Success: #007F5F (For "Public" risks or completed actions).
+    - Danger: #9B2226 (For "High Risk" items or Revoke buttons).
+    - Muted/Caption: #6B7280 (For metadata and secondary info).
+- Typography: Focus on "Google Sans" (native Workspace feel) with strong weight for titles.
+- Logo: Square icon with soft rounded corners, featuring the brand navy blue.
+- Layout: 
+    - "Canva-style" compact panels.
+    - Minimalist approach: No heavy horizontal dividers between widgets.
+    - Uses empty TextParagraphs for intentional whitespace (breathing room).
+    - Fixed Footers: Used for the most critical action on every page.

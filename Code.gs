@@ -1,5 +1,5 @@
 /**
- * Drive Access Viewer — entry triggers and global action callbacks.
+ * Access Manager & Bulk Revoke — entry triggers and global action callbacks.
  *
  * Architecture:
  *   - Drive homepage (no file selected) → Cards.buildHomepageCard (user-search + bulk revoke)
@@ -22,9 +22,13 @@ function onItemsSelected(e) {
     if (items.length === 0) {
       return Cards.buildHomepageCard({});
     }
-    // Premium gate: full file analysis requires an active subscription.
+    // Quota gate: free users get 10 audits per month.
     if (!Subscription.isActive()) {
-      return PaywallCard.build(false);
+      if (!QuotaService.canAccessFreeFeature()) {
+        return PaywallCard.build(false, 'limit');
+      }
+      // We consume the credit now because we are about to build the card.
+      QuotaService.consumeCredit();
     }
     const fileId = items[0].id;
     return Cards.buildMainCard(fileId, 'access');
@@ -53,6 +57,14 @@ function actionSwitchSection(e) {
  * back arrow returns the user to the file's Access view.
  */
 function actionShowExplanations(e) {
+  if (!Subscription.isActive()) {
+    if (!QuotaService.canAccessFreeFeature()) {
+      return CardService.newActionResponseBuilder()
+        .setNavigation(CardService.newNavigation().pushCard(PaywallCard.build(false, 'limit')))
+        .build();
+    }
+    QuotaService.consumeCredit();
+  }
   const params = (e && e.commonEventObject && e.commonEventObject.parameters) || {};
   const card = AccessCard.buildExplanationCard(params.fileId);
   return CardService.newActionResponseBuilder()
@@ -66,6 +78,11 @@ function actionShowExplanations(e) {
  * upstream).
  */
 function actionOpenRevokeRow(e) {
+  if (!Subscription.isActive()) {
+    return CardService.newActionResponseBuilder()
+      .setNavigation(CardService.newNavigation().pushCard(PaywallCard.build(false, 'feature')))
+      .build();
+  }
   const params = (e && e.commonEventObject && e.commonEventObject.parameters) || {};
   const card = AccessCard.buildRevokeRowCard(params.fileId, params.permissionId);
   return CardService.newActionResponseBuilder()
@@ -74,12 +91,14 @@ function actionOpenRevokeRow(e) {
 }
 
 /**
- * Execute a single-row revoke from the confirmation card. On success,
- * pop the confirmation and refresh the underlying Access view with
- * fresh permission data. On failure, surface a friendly notification
- * without leaving the confirmation card.
+ * Execute a single-row revoke from the confirmation card.
  */
 function actionExecuteRevokeRow(e) {
+  if (!Subscription.isActive()) {
+    return CardService.newActionResponseBuilder()
+      .setNavigation(CardService.newNavigation().pushCard(PaywallCard.build(false, 'feature')))
+      .build();
+  }
   const params = (e && e.commonEventObject && e.commonEventObject.parameters) || {};
   const fileId = params.fileId;
   const permissionId = params.permissionId;
@@ -133,6 +152,11 @@ function actionOpenInvestigation(e) {
  * Trigger an Audit CSV export to the user's Drive root.
  */
 function actionExportAuditCsv(e) {
+  if (!Subscription.isActive()) {
+    return CardService.newActionResponseBuilder()
+      .setNavigation(CardService.newNavigation().pushCard(PaywallCard.build(false, 'feature')))
+      .build();
+  }
   const params = e.commonEventObject.parameters || {};
   const fileId = params.fileId;
   try {
@@ -152,38 +176,26 @@ function actionExportAuditCsv(e) {
 
 // ─── Homepage / Cleanup callbacks ──────────────────────────────────────────
 
-/**
- * Collapse the card stack back to whatever the root was (homepage if
- * the user entered from the Drive sidebar, file-context card if they
- * entered from a selected file). Used by the "Done" button at the end
- * of the bulk-cleanup workflow.
- */
 function actionOpenHomepage(e) {
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().popToRoot())
     .build();
 }
 
-/**
- * Pop one card from the stack (used by Cancel buttons inside pushed
- * sub-cards like the confirm-revoke screen).
- */
 function actionPopCard(e) {
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().popCard())
     .build();
 }
 
-/**
- * Push the dedicated bulk-cleanup card (search + revoke a single user
- * from many files). Reachable from the homepage CTA and from the
- * "Manage user access" link inside file-context cards.
- */
 function actionOpenBulkCleanup(e) {
   if (!Subscription.isActive()) {
-    return CardService.newActionResponseBuilder()
-      .setNavigation(CardService.newNavigation().pushCard(PaywallCard.build(false)))
-      .build();
+    if (!QuotaService.canAccessFreeFeature()) {
+      return CardService.newActionResponseBuilder()
+        .setNavigation(CardService.newNavigation().pushCard(PaywallCard.build(false, 'limit')))
+        .build();
+    }
+    QuotaService.consumeCredit();
   }
   const card = Cards.buildBulkCleanupCard({});
   return CardService.newActionResponseBuilder()
@@ -191,17 +203,13 @@ function actionOpenBulkCleanup(e) {
     .build();
 }
 
-/**
- * Invalidate the cached subscription status and reload the paywall card
- * (called after the user returns from Stripe Checkout / Portal).
- */
 function actionRefreshSubscription(e) {
   Subscription.invalidateCache();
   const subscribed = Subscription.isActive();
   if (subscribed) {
     return CardService.newActionResponseBuilder()
       .setNavigation(CardService.newNavigation().popCard())
-      .setNotification(CardService.newNotification().setText('Subscription active — enjoy Pro access!'))
+      .setNotification(CardService.newNotification().setText('Subscription active. Enjoy Pro access!'))
       .build();
   }
   return CardService.newActionResponseBuilder()
@@ -210,9 +218,6 @@ function actionRefreshSubscription(e) {
     .build();
 }
 
-/**
- * Universal action: open the Upgrade / Manage subscription card.
- */
 function actionOpenSubscription(e) {
   const subscribed = Subscription.isActive();
   const card = PaywallCard.build(subscribed);
@@ -221,10 +226,15 @@ function actionOpenSubscription(e) {
     .build();
 }
 
-/**
- * Run the bulk-cleanup user search (called from the bulk card).
- */
 function actionRunCleanupSearch(e) {
+  if (!Subscription.isActive()) {
+    if (!QuotaService.canAccessFreeFeature()) {
+      return CardService.newActionResponseBuilder()
+        .setNavigation(CardService.newNavigation().pushCard(PaywallCard.build(false, 'limit')))
+        .build();
+    }
+    QuotaService.consumeCredit();
+  }
   const formInputs = (e.commonEventObject && e.commonEventObject.formInputs) || {};
   const target = (formInputs.cleanup_search && formInputs.cleanup_search.stringInputs.value[0]) || '';
   const card = Cards.buildBulkCleanupCard({ cleanupTarget: target.trim() });
@@ -233,9 +243,6 @@ function actionRunCleanupSearch(e) {
     .build();
 }
 
-/**
- * Toggle a single item in the bulk-cleanup selection set.
- */
 function actionToggleCleanupItem(e) {
   const params = e.commonEventObject.parameters || {};
   const cleanupTarget = params.cleanupTarget || '';
@@ -255,9 +262,6 @@ function actionToggleCleanupItem(e) {
     .build();
 }
 
-/**
- * Select all items currently in the result list.
- */
 function actionSelectAllCleanup(e) {
   const params = e.commonEventObject.parameters || {};
   const card = Cards.buildBulkCleanupCard({
@@ -269,9 +273,6 @@ function actionSelectAllCleanup(e) {
     .build();
 }
 
-/**
- * Clear the entire bulk-cleanup selection set.
- */
 function actionClearCleanupSelection(e) {
   const params = e.commonEventObject.parameters || {};
   const card = Cards.buildBulkCleanupCard({
@@ -283,10 +284,12 @@ function actionClearCleanupSelection(e) {
     .build();
 }
 
-/**
- * Push the irreversible-action confirmation card.
- */
 function actionConfirmRevoke(e) {
+  if (!Subscription.isActive()) {
+    return CardService.newActionResponseBuilder()
+      .setNavigation(CardService.newNavigation().pushCard(PaywallCard.build(false, 'feature')))
+      .build();
+  }
   const params = e.commonEventObject.parameters || {};
   const card = CleanupCard.buildConfirmRevokeCard(params.cleanupTarget, params.cleanupSelected);
   return CardService.newActionResponseBuilder()
@@ -294,10 +297,12 @@ function actionConfirmRevoke(e) {
     .build();
 }
 
-/**
- * Execute the bulk revoke and show the result report card.
- */
 function actionExecuteRevoke(e) {
+  if (!Subscription.isActive()) {
+    return CardService.newActionResponseBuilder()
+      .setNavigation(CardService.newNavigation().pushCard(PaywallCard.build(false, 'feature')))
+      .build();
+  }
   const params = e.commonEventObject.parameters || {};
   const ids = (params.cleanupSelected || '').split(',').filter(Boolean);
   const target = params.cleanupTarget;

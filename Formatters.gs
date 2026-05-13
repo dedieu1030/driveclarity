@@ -182,7 +182,7 @@ const Formatters = (function () {
    */
   function friendlyError(err) {
     const msg = (err && (err.message || err.toString())) || '';
-    try { console.error('Drive Access Viewer error:', msg); } catch (_) {}
+    try { console.error('Access Manager & Bulk Revoke error:', msg); } catch (_) {}
 
     if (/sufficient permissions/i.test(msg))                   return "You don't have permission to view this item's sharing settings.";
     if (/insufficientFilePermissions/i.test(msg))              return "You don't have edit access to this item.";
@@ -191,7 +191,7 @@ const Formatters = (function () {
     if (/sharingRateLimitExceeded/i.test(msg))                 return "Too many sharing changes at once. Please try again in a moment.";
     if (/Rate Limit Exceeded|userRateLimitExceeded|quota/i.test(msg)) return "Too many requests. Please try again in a moment.";
     if (/Forbidden|forbidden/i.test(msg))                      return "You don't have permission for this action.";
-    if (/Authorization|unauthorized/i.test(msg))               return "Drive Access Viewer needs to be reauthorized.";
+    if (/Authorization|unauthorized/i.test(msg))               return "Access Manager & Bulk Revoke needs to be reauthorized.";
     if (/Invalid field selection/i.test(msg))                  return "Something went wrong reading this item.";
     if (/timeout|timed out/i.test(msg))                        return "The request took too long. Try again with a smaller selection.";
     return "Something went wrong. Please try again.";
@@ -216,7 +216,8 @@ const Formatters = (function () {
       return CardService.newIconImage().setIcon(CardService.Icon.PERSON);
     }
     if (permission.type === 'domain') {
-      return CardService.newIconImage().setIcon(CardService.Icon.HOTEL_ROOM_TYPES);
+      return CardService.newIconImage()
+        .setIconUrl('https://www.gstatic.com/images/icons/material/system/2x/business_grey600_24dp.png');
     }
     if (permission.type === 'group') {
       return CardService.newIconImage().setIcon(CardService.Icon.MULTIPLE_PEOPLE);

@@ -22,11 +22,11 @@
     "openid"
   ],
   "urlFetchWhitelist": [
-    "https://us-central1-driveaccessviewer-dedieu.cloudfunctions.net/"
+    "https://api.stripe.com/"
   ],
   "addOns": {
     "common": {
-      "name": "Drive Access Viewer",
+      "name": "Access Manager & Bulk Revoke",
       "logoUrl": "https://raw.githubusercontent.com/dedieu1030/driveclarity/5a0b96f/addon-logo.png",
       "useLocaleFromApp": true,
       "layoutProperties": {
@@ -43,18 +43,15 @@
           "runFunction": "actionOpenSubscription"
         },
         {
-          "label": "About Drive Access Viewer",
-          "openLink": "https://driveclarity.app/about"
-        },
-        {
-          "label": "Privacy & data handling",
-          "openLink": "https://driveclarity.app/privacy"
+          "label": "Support",
+          "openLink": "https://tally.so/r/EkvMx2"
         }
       ],
       "openLinkUrlPrefixes": [
         "https://checkout.stripe.com/",
         "https://billing.stripe.com/",
-        "https://driveclarity.app/"
+        "https://driveclarity.app/",
+        "https://tally.so/"
       ]
     },
     "drive": {
