@@ -38,13 +38,26 @@ const CleanupCard = (function () {
   // via the fixed-footer CTA — keeping the two flows physically and
   // mentally separated (Canva-style navigation pattern).
 
+  const HERO_IMAGE_URL = 'https://raw.githubusercontent.com/dedieu1030/driveclarity/main/homepage-hero.png'; // ⚠️ URL DE TON IMAGE ICI
+
   function addHomepageHeroSections(builder) {
     const main = CardService.newCardSection();
+    
+    // Image d'accueil (façon Canva)
+    main.addWidget(CardService.newImage()
+      .setImageUrl(HERO_IMAGE_URL)
+      .setAltText('Drive Access Viewer'));
+      
     appendHowItWorks(main);
     appendSpacer(main);
-    main.addWidget(CardService.newDivider());
     appendSpacer(main);
     appendBulkCleanupHint(main);
+    
+    appendSpacer(main);
+    // Quota status display (now at the bottom, above the footer)
+    main.addWidget(CardService.newTextParagraph()
+      .setText('<font color="' + Formatters.COLORS.muted + '">' + QuotaService.getQuotaStatus() + '</font>'));
+
     builder.addSection(main);
   }
 
@@ -268,11 +281,14 @@ const CleanupCard = (function () {
     const selectedIds = (state.cleanupSelected || '').split(',').filter(Boolean);
     if (!state.cleanupTarget || selectedIds.length === 0) return null;
 
+    const isPro = Subscription.isActive();
+    const btnText = isPro ? 'Revoke selected (' + selectedIds.length + ')' : 'Upgrade to revoke (' + selectedIds.length + ')';
+
     return CardService.newFixedFooter()
       .setPrimaryButton(CardService.newTextButton()
-        .setText('Revoke selected (' + selectedIds.length + ')')
+        .setText(btnText)
         .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
-        .setBackgroundColor(Formatters.COLORS.danger)
+        .setBackgroundColor(isPro ? Formatters.COLORS.danger : Formatters.COLORS.brand)
         .setOnClickAction(CardService.newAction()
           .setFunctionName('actionConfirmRevoke')
           .setParameters({
