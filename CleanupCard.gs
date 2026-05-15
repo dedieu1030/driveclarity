@@ -38,7 +38,7 @@ const CleanupCard = (function () {
   // via the fixed-footer CTA — keeping the two flows physically and
   // mentally separated (Canva-style navigation pattern).
 
-  const HERO_IMAGE_URL = 'https://raw.githubusercontent.com/dedieu1030/driveclarity/main/instruction-hero.png'; // ⚠️ URL DE TON IMAGE ICI
+  const HERO_IMAGE_URL = 'https://raw.githubusercontent.com/dedieu1030/driveclarity/main/select.png'; // ⚠️ URL DE TON IMAGE ICI
 
   function addHomepageHeroSections(builder) {
     const main = CardService.newCardSection();
