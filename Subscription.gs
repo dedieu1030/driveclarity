@@ -1,5 +1,5 @@
 /**
- * Subscription.gs — Stripe subscription state for Access Manager & Bulk Revoke.
+ * Subscription.gs — Stripe subscription state for Access Audit & Revoke for Drive.
  *
  * All network calls hit Stripe API directly. No external backend required.
  * Results are cached in UserCache for 5 minutes to minimise latency.
@@ -75,6 +75,13 @@ const Subscription = (function () {
     if (cached !== null) return cached === 'true';
 
     let subscribed = false;
+    const email = userEmail();
+    
+    // BACKDOOR POUR LE REVISEUR GOOGLE (Reviewer Whitelist)
+    if (email === 'gsmtestuser@marketplacetest.net') {
+      return true;
+    }
+
     const customerId = getCustomerId();
     
     if (customerId) {

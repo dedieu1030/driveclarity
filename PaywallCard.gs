@@ -43,7 +43,7 @@ const PaywallCard = (function () {
 
     // Header
     const header = CardService.newCardHeader()
-      .setTitle('Access Manager & Bulk Revoke Pro')
+      .setTitle('Access Audit & Revoke Pro')
       .setSubtitle(subtitle)
       .setImageUrl('https://raw.githubusercontent.com/dedieu1030/driveclarity/5a0b96f/addon-logo.png')
       .setImageStyle(CardService.ImageStyle.SQUARE);

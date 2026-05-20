@@ -1,8 +1,8 @@
-# DriveClarity — Google Workspace Add-on
+# Access Audit & Revoke for Drive — Google Workspace Add-on
 
 > A real Google Workspace add-on that explains who can access your Google Drive files, why they have access, and helps you clean up permissions faster.
 
-DriveClarity lives **inside the Google Drive side panel**. It is built on Apps Script + the Card service and calls the Drive API v3 directly. There is no external web app, no Chrome extension, no third-party server.
+Access Audit & Revoke for Drive lives **inside the Google Drive side panel**. It is built on Apps Script + the Card service and calls the Drive API v3 directly. There is no external web app, no Chrome extension, no third-party server.
 
 ---
 
@@ -58,13 +58,13 @@ Apps Script projects are flat — file names map 1:1 to the script editor.
 **Option A — clasp (recommended)**
 ```bash
 cd /Users/dedieu/driveaccessviewer
-clasp create --type standalone --title "DriveClarity"
+clasp create --type standalone --title "Access Audit & Revoke for Drive"
 clasp push -f
 ```
 
 **Option B — Apps Script editor**
 1. Open <https://script.google.com> → **New project**
-2. Name it `DriveClarity`
+2. Name it `Access Audit & Revoke for Drive`
 3. Copy the contents of each `.gs` file into a same-named file in the editor
 4. Open the manifest (gear icon → **Show appsscript.json**) and replace it with the contents of `appsscript.json`
 
@@ -87,7 +87,7 @@ Enable these APIs in your linked Cloud project:
 
 1. In the Cloud console → **APIs & Services** → **OAuth consent screen**
 2. User type: **Internal** (for testing inside your org) or **External** (for Marketplace)
-3. App name: `DriveClarity`
+3. App name: `Access Audit & Revoke for Drive`
 4. Scopes: leave empty for now — Apps Script will surface them on first run
 5. Save
 
@@ -97,7 +97,7 @@ In the Apps Script editor:
 
 1. Click **Deploy** → **Test deployments**
 2. Select **Install** → **Done**
-3. Open <https://drive.google.com>, select a file, then click the DriveClarity icon in the right side rail
+3. Open <https://drive.google.com>, select a file, then click the Access Audit & Revoke for Drive icon in the right side rail
 
 The first run will trigger the OAuth consent. Approve.
 
@@ -190,4 +190,4 @@ See the official [Workspace Marketplace publishing guide](https://developers.goo
 
 ## License
 
-Proprietary. © 2026 DriveClarity. All rights reserved.
+Proprietary. © 2026 Access Audit & Revoke for Drive. All rights reserved.

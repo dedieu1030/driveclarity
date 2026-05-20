@@ -1,5 +1,5 @@
 /**
- * Access Manager & Bulk Revoke — entry triggers and global action callbacks.
+ * Access Audit & Revoke for Drive — entry triggers and global action callbacks.
  *
  * Architecture:
  *   - Drive homepage (no file selected) → Cards.buildHomepageCard (user-search + bulk revoke)

@@ -1,0 +1,128 @@
+Évaluation approfondie du nom Permissions Auditor for Drive
+Synthèse exécutive
+Le nom “Permissions Auditor for Drive” est solide sur la clarté fonctionnelle, surtout pour un public déjà familier de Google Workspace, de la gouvernance d’accès et des audits de partage. Il colle bien à la partie visibilité / cartographie des droits, mais il sous-communique la deuxième promesse produit, à savoir la révocation massive d’accès. En clair : il décrit bien l’outil d’inspection, moins bien l’outil d’action. Dans les documents Google, la langue utilisateur met fortement en avant access et manage access, alors que la couche développeur/admin met plus volontiers en avant permissions et audit. Votre nom est donc techniquement crédible, mais pas parfaitement aligné avec la langue la plus intuitive de l’interface Google. 
+
+Sur le plan marché, le besoin est réel : Google documente la gestion du partage externe, les événements d’audit Drive, le contrôle des apps tierces et la restriction des scopes Drive à haut risque, tandis que plusieurs acteurs du Marketplace se positionnent déjà sur ce problème avec des messages proches : Drive Guard, Folgo, Soluvery, GSecureSpace, Netkiller ISMS, GAT+. Les compteurs publics affichés sur leurs fiches montrent aussi que la catégorie existe vraiment, avec des ordres de grandeur allant de 134 pour Soluvery à 8K+ pour Drive Guard, 1M+ pour Folgo et 12M+ pour GAT+, même si ces chiffres reflètent surtout une popularité publique et non une conversion comparable produit à produit. 
+
+Mon verdict global est le suivant : bon nom descriptif, mais pas encore optimal. Il mérite 7,5/10. Si vous voulez maximiser la compréhension immédiate et réduire le risque de friction de marque Google, je recommanderais au minimum une reformulation vers “Permissions Auditor for Google Drive™” ou, plus agressivement orienté CTR et alignement UX, “Access Audit for Google Drive™”. Si vous gardez le nom actuel, il faudra absolument compenser avec une short description très actionnelle mettant en avant la détection des partages publics/externes et le bulk revoke. 
+
+Dimension	Évaluation
+Intention de recherche	Réelle, surtout en bas de funnel
+Clarté Marketplace	Bonne sur l’audit, moyenne sur l’action
+Crédibilité admin/compliance	Élevée
+Compréhension PME / non-spécialistes	Moyenne
+Différenciation	Moyenne à faible
+Risque marque Google	Acceptable en pratique, mais pas la forme la plus sûre
+Recommandation	Optimiser le titre ou, à défaut, renforcer fortement la short description
+
+Cette synthèse repose sur les documents Google sur le partage, les permissions, l’audit et les règles de marque, ainsi que sur les fiches publiques des concurrents actifs du Marketplace. 
+
+SEO et volume de recherche
+Je n’ai trouvé aucune source officielle publique Google qui publie le volume de recherche interne du Google Workspace Marketplace ni un algorithme détaillé de classement des fiches. En revanche, Google documente clairement les champs qui structurent la découvrabilité d’une fiche — application name, short description, detailed description, category — et précise explicitement que la catégorie aide à la découvrabilité. En d’autres termes, sur Marketplace, le nom est un levier important, mais il ne suffit jamais seul : il travaille avec la description courte, la catégorie et la preuve sociale de la fiche. 
+
+Pour le Web SEO, les meilleurs signaux publics que j’ai pu vérifier pointent vers une demande réelle mais de niche, donc davantage qualifiée que massive. Un dump public de mots-clés indexé par Scribd donne par exemple “google drive permissions” à 1300 recherches et “google drive security” à 3600 dans la même source-type, alors que “google drive access control” y apparaît plus bas à 110. Ces chiffres doivent être traités comme directionnels, pas comme une vérité auditée, mais ils racontent une chose très utile : le plus gros réservoir lexical semble être security, puis permissions, puis des formulations plus techniques comme access control. Cela signifie que votre titre couvre bien un cluster milieu / bas de funnel, mais qu’il laisse sans doute du trafic en amont à des formulations plus larges comme Drive security, external sharing, public links, who has access, ou remove access. 
+
+Le besoin métier, lui, est incontestable. Google a une documentation dédiée à la gestion du partage externe, aux Drive log events et à l’Audit and investigation tool, ainsi qu’au contrôle des apps et aux scopes Drive à haut risque. Cela confirme que les sujets couverts par votre app — visibilité sur les droits, partage public, accès externes, gouvernance continue, révocation — correspondent à des cas d’usage administrateur bien réels. Les concurrents vont dans le même sens : Drive Guard promet de montrer “who has access to what”, Folgo met en avant l’audit et la révocation de permissions à grande échelle, Soluvery insiste sur la détection des risques et le bulk remove access. 
+
+Le point important pour votre nom est donc le suivant : “Permissions Auditor for Drive” a un potentiel organique correct si votre stratégie vise un trafic plus restreint mais très intentionniste. En revanche, si vous voulez élargir la surface de capture SEO/ASO, la fiche devrait injecter davantage de vocabulaire utilisé par Google et par les acheteurs : access, public sharing, external sharing, bulk revoke, remove access, offboarding, compliance, security. Le titre actuel ne bloque pas la performance, mais il est trop étroit pour porter toute la découvrabilité à lui seul. 
+
+Élément du nom	Alignement avec l’intention de recherche	Observations SEO / ASO
+Permissions	Fort pour admins / compliance	Technique, précis, bon milieu-bas de funnel
+Auditor	Moyen	Sérieux et crédible, mais moins recherché/naturel que “audit”
+for Drive	Utile comme signal de compatibilité	Peu générateur de demande par lui-même
+
+Cette grille est une synthèse des documents Google, des signaux de concurrence et des proxys de mots-clés publics consultés. 
+
+Duel sémantique des mots clés
+Le duel Access vs Permissions ne se tranche pas de la même façon selon le public. Dans l’écosystème Google, les documents end-user utilisent beaucoup access : on lit Manage access, General access, people with access, choose who can access the file, alors que les documents développeur parlent de permissions resources, roles and permissions, permissionId, ACL. Dit autrement, access est la langue de l’interface et de la compréhension immédiate, tandis que permissions est la langue du modèle de sécurité et de l’administration technique. 
+
+Psychologiquement, permissions paraît plus sérieux, plus granulaire, plus proche de la gouvernance et de la conformité. C’est un meilleur mot si votre cœur de cible est le super admin Workspace, le security lead ou le compliance officer. À l’inverse, access est plus simple, plus direct, et plus proche du langage mental de l’utilisateur qui se pose une question concrète : “Qui a accès à quoi ?”. Les recommandations UX de Nielsen Norman Group sont très nettes : il faut utiliser des termes familiers à l’audience, éviter le jargon inutile, mais employer le vocabulaire spécialisé lorsque l’on s’adresse à un public spécialisé. Votre cible mélange justement des spécialistes et des PME, ce qui rend access légèrement meilleur en découverte large, et permissions légèrement meilleur en crédibilité experte. 
+
+Critère	Access	Permissions	Gagnant
+Compréhension immédiate	Très forte	Bonne	Access
+Alignement avec l’UI Google	Très fort	Moyen	Access
+Alignement avec l’API / admin technique	Moyen	Très fort	Permissions
+Ton enterprise / compliance	Bon	Très fort	Permissions
+Potentiel CTR large audience	Fort	Moyen	Access
+
+Sur ce duel, mon gagnant global pour un titre Marketplace est Access, mais mon gagnant pour un produit purement admin/compliance reste Permissions. Si vous ciblez explicitement les administrateurs Google Workspace, garder Permissions se défend très bien. Si vous visez aussi les PME et responsables métiers, Access est plus performant cognitivement. 
+
+Le duel Revoke vs Unshare est encore plus tranché. Revoke est un verbe formel, défini par Cambridge comme le fait de déclarer officiellement qu’une permission ou un droit n’est plus en vigueur. C’est le champ lexical du contrôle, de la gouvernance et de la décision administrative. En plus, la documentation développeur Google emploie explicitement la formule “revoke access” quand une permission est supprimée. 
+
+Unshare, au contraire, est compréhensible, mais son statut lexical est plus vernaculaire. Il est enregistré comme verbe informatique signifiant “stop sharing”, et surtout il a un important problème SEO : il se heurte à du bruit sémantique fort, notamment le Linux command “unshare”, très présent dans les résultats, et il existe déjà une app Marketplace nommée Unshare qui fait précisément du bulk remove access sur Drive. En d’autres termes, unshare est plus intuitif pour un usage grand public, mais il est moins premium, moins précis juridiquement, et moins différenciant dans votre catégorie. 
+
+Critère	Revoke	Unshare	Gagnant
+Ton sécurité / enterprise	Très fort	Moyen	Revoke
+Intuition grand public	Bonne	Très forte	Unshare
+Alignement avec la doc Google	Fort	Faible	Revoke
+Différenciation SEO	Bonne	Faible	Revoke
+Risque de bruit sémantique	Moyen	Élevé	Revoke
+
+Ma recommandation opérationnelle est donc simple : dans le marketing admin, utilisez Revoke access ; dans l’UI produit, utilisez volontiers Remove access parce que c’est le libellé Google le plus naturel ; et évitez de brander le produit autour de Unshare, sauf si vous ciblez un usage très consumer. 
+
+Concurrence et différenciation
+Votre nom entre dans un paysage déjà structuré. Les principaux concurrents actifs et visibles du Marketplace se positionnent de façon assez nette : GAT+ sur la suite globale d’audit/sécurité/automation, Folgo sur l’audit, la gestion de permissions et l’offboarding à l’échelle, Drive Guard sur la surveillance claire des partages Drive, Soluvery sur l’audit de Drive et le bulk remove/revoke, GSecureSpace sur la recherche/navigation multi-Drive orientée admin, et Netkiller ISMS sur une logique DLP et surveillance temps réel. 
+
+Produit	Positionnement public	Signal de popularité public	Lecture concurrentielle
+GAT+	Suite large d’audit, sécurité, automation Workspace	12M+	Très puissant, mais peu spécifique Drive
+Folgo for Google Drive™	Audit, permission management, offboarding, migrations	1M+	Très fort en enterprise ops
+Drive™ Guard by 8apps	“Who has access to what”, audit rapide, risques de partage	8K+	Très bon message de clarté
+Soluvery	Audit Drive, risky sharing, bulk remove/revoke	134	Très explicite mais encore jeune
+GSecureSpace	Audit/search admin pour tous les Drives d’orga	104	Plus admin opérationnel que gouvernance marketing
+Audit for Google Drive™	DLP, monitoring et blocage	2	Très sécurité/DLP, moins “self-serve”
+
+Les chiffres et propositions de valeur ci-dessus proviennent directement des fiches publiques du Marketplace consultées. 
+
+Face à GAT+, votre nom est massivement plus clair. Face à Folgo, il est plus descriptif, mais moins brandable. Face à Drive Guard, il est plus explicite sur le mécanisme technique, mais moins mémorable. Face à Soluvery, il est presque au même niveau de clarté, mais moins équilibré parce qu’il ne dit pas assez la partie action. Globalement, votre titre a une vraie force : on comprend immédiatement qu’il s’agit d’un outil d’inspection des droits. Mais il a aussi deux faiblesses : il ressemble à une catégorie générique plus qu’à une marque, et il entre dans un territoire de dénomination déjà très occupé. 
+
+Le point le plus important ici est la différenciation nominale. Il a déjà existé un écosystème très proche autour de Drive Permissions Auditor, Permissions Auditor for Google Drive, Google Drive Auditor, et plus récemment DriveAuditr. Digital Inspiration a même publié noir sur blanc “Permissions Auditor for Google Drive” dans son contenu produit, avec un add-on appelé Drive Permissions Auditor dans Google Sheets, tandis que DriveAuditr se présente comme Google Drive Permission Auditor. Cela ne veut pas dire que vous ne pouvez pas publier, mais cela veut dire que votre nom sera facilement confondu avec des solutions antérieures ou adjacentes. C’est, à mon sens, le plus gros point faible du choix actuel. 
+
+Clarté cognitive et psychologie utilisateur
+L’association Permissions + Auditor inspire bien la rigueur, la revue, la conformité, donc elle fonctionne correctement pour installer une atmosphère de sérieux. Le mot auditor renvoie à une personne ou une entité autorisée à examiner et vérifier ; c’est très bon pour la confiance, mais cela pousse aussi mentalement le produit vers le rôle de contrôleur plus que vers le rôle de remédiateur. Or votre produit ne se contente pas d’auditer : il révoque en masse. C’est précisément pour cette raison que le nom actuel raconte mieux la moitié audit que la moitié bulk revoke. 
+
+Du point de vue de la compréhension, il faut aussi tenir compte de la diversité de votre audience. NN/g rappelle que le langage clair améliore la crédibilité, la recherche SEO et la conversion, mais que, pour des audiences spécialisées, il faut savoir employer le vocabulaire du métier. Cela plaide pour une structure hybride : un titre suffisamment crédible pour les admins, mais une description assez simple pour les PME. Dans votre cas, le nom seul ne suffit pas. Il a besoin d’une phrase de soutien qui transforme un intitulé technique en bénéfice concret. 
+
+La meilleure façon de compenser cette légère froideur technique est d’écrire une short description ultra explicite. Une formulation du type “Audit Google Drive™ access, detect public/external sharing, and bulk revoke a user’s permissions in one click.” rend immédiatement visibles les deux promesses, tout en injectant plusieurs synonymes découvrables : audit, access, public, external sharing, bulk revoke, permissions. C’est exactement le type de vocabulaire que Google recommande implicitement : des libellés brefs, clairs, orientés action, et proches du langage de l’utilisateur. 
+
+Il faut enfin penser à la psychologie de la confiance admin. Google permet aux administrateurs de revoir les apps accédant aux données Workspace, de voir les services demandés, de restreindre les apps non approuvées et de révoquer les tokens ; Google considère même plusieurs scopes Drive comme high-risk. Cela signifie qu’un nom sérieux aide, oui, mais qu’il faudra aussi expliquer très clairement pourquoi vous demandez les scopes sensibles et comment vous traitez les données. Les concurrents avancés le font déjà, et certains, comme Folgo, affichent même une independent security verification sur leur fiche. Le nom doit donc être pensé comme une pièce d’un système de confiance, pas comme l’unique garant de conversion. 
+
+Conformité Google
+La réponse courte à votre question juridique est : non, la structure actuelle n’est pas “100 % conforme sans discussion” telle qu’écrite. Les règles Google créent une tension bien réelle. D’un côté, la documentation de création de fiche dit de ne pas utiliser “Google” ni d’autres noms de produits Google dans le nom de l’application. D’un autre côté, les branding guidelines du Marketplace prévoient une exception explicite pour indiquer la compatibilité, en autorisant l’usage de formulations comme “for”, “for use with” ou “compatible with” avant la marque Google, y compris dans le titre, avec le symbole ™. Les guidelines donnent même l’exemple “for Gmail™” et demandent une attribution correcte de la marque dans la description. 
+
+En pratique, le Marketplace montre que Google accepte des titres contenant Drive ou for Google Drive™ : on trouve par exemple Folgo for Google Drive™, Duplicate File Finder, Cleaner for Drive, Organizer & Duplicate Remover for Google Drive™, Drive™ Guard by 8apps, Audit for Google Drive™. Cela prouve qu’il existe une tolérance opérationnelle autour de ces formes. Mais cela ne change pas le point juridique principal : la forme la plus sûre au regard du texte officiel n’est pas “for Drive”, c’est “for Google Drive™” avec attribution correcte dans la description et sans implication d’endossement. 
+
+Deux autres points pratiques méritent d’être signalés. D’abord, la fiche du Marketplace autorise jusqu’à 50 caractères pour le nom, donc votre intitulé passe sans problème à ce niveau. Ensuite, le style guide des add-ons précise qu’un nom court est préférable et indique que 15 caractères ou moins est l’idéal, tout en déconseillant les noms de produits Google dans le nom de l’add-on. Cette recommandation n’est pas réaliste pour beaucoup d’apps B2B descriptives de votre catégorie, mais elle rappelle une vérité produit : plus le nom s’allonge, plus il devient moins mémorisable et potentiellement tronqué dans certaines surfaces UI. 
+
+Point de conformité	État actuel	Niveau de risque	Recommandation
+Usage de “for”	Bon signal	Faible	Conserver
+Référence au produit Google	Incomplète	Moyen	Passer à “for Google Drive™”
+Symbole ™	Absent	Moyen	L’ajouter dans le titre compatible
+Attribution de marque	Non mentionnée	Moyen	Ajouter dans la description / site
+Longueur du nom	Conforme au listing	Faible	Rester sous 50, idéalement plus compact
+
+Cette checklist est directement fondée sur les règles Marketplace/brand Google et sur les exemples publics actuellement visibles dans le store. 
+
+Verdict final et variantes recommandées
+Ma note finale est 7,5/10. Le nom actuel a trois vraies qualités : il est descriptif, professionnel, et il rassure les profils admin/compliance. Mais il perd des points sur trois axes déterminants : il est moins intuitif que la langue Google centrée sur access, il n’exprime pas suffisamment la remédiation, et il manque de différenciation nominale face à des appellations proches déjà utilisées sur le marché. 
+
+Si vous tenez à conserver l’idée de départ, ma recommandation minimale est la suivante : remplacer le titre actuel par “Permissions Auditor for Google Drive™” et ajouter une short description qui dise explicitement audit + external/public sharing + bulk revoke. C’est la voie conservatrice : vous gardez le cœur du positionnement tout en réduisant le flou juridique et en améliorant le signal de compatibilité. 
+
+Si vous êtes prêt à optimiser davantage pour la compréhension et le CTR, voici mes variantes préférées, par ordre de recommandation :
+
+Variante	Quand la choisir	Pourquoi elle est meilleure
+Access Audit for Google Drive™	Si vous voulez la meilleure clarté globale	Aligne le titre sur le langage Google et reste crédible
+Permissions Audit for Google Drive™	Si la cible est très admin/compliance	Plus technique que “Access”, moins “personnifié” que “Auditor”
+Access Audit & Revoke for Google Drive™	Si vous voulez faire remonter la fonction d’action dans le nom	Très clair sur les deux promesses produit
+Access Auditor for Google Drive™	Si vous aimez le ton sérieux de “Auditor”	Plus simple et plus proche du besoin “who has access”
+Revoke Access for Google Drive™	Si vous voulez cibler fortement l’offboarding / bulk cleanup	Très actionnel, mais plus étroit que le produit réel
+
+Ces propositions synthétisent les règles de marque Google, le langage UI de Drive, la sémantique admin, et les patterns de dénomination observés chez les concurrents. 
+
+Ma recommandation principale serait donc :
+
+Titre recommandé : Access Audit for Google Drive™
+Short description recommandée : Audit Google Drive™ access, detect public/external sharing, and bulk revoke a user’s permissions in one click.
+Libellé CTA recommandé dans l’app : Bulk revoke access ou Remove access, plutôt que Unshare. 
+
+Limites et questions ouvertes
+La principale limite de cette recherche est qu’aucune source officielle publique consultée ne donne le volume de recherche interne du Google Workspace Marketplace, ni un benchmark public de CTR pour des formulations comme Revoke vs Unshare. Les chiffres de volume web accessibles publiquement étaient partiels et issus de proxys tiers, donc utiles pour l’orientation, mais pas assez robustes pour une décision fondée uniquement dessus. Enfin, les compteurs publics du Marketplace montrent la popularité visible de certaines apps, mais pas leur conversion, leur qualité de revenu ni leur taux d’activation. Mon verdict est donc fort sur la sémantique, la conformité et le positionnement concurrentiel, mais directionnel sur le volume exact et le CTR strict. 

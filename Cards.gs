@@ -1,5 +1,5 @@
 /**
- * Cards.gs — Top-level card orchestration for Access Manager & Bulk Revoke.
+ * Cards.gs — Top-level card orchestration for Access Audit & Revoke for Drive.
  *
  * Responsible for:
  *  - Building the main card frame (header + tab bar + active section)
@@ -39,7 +39,7 @@ const Cards = (function () {
     // typography (bold titles), spacing (empty paragraphs as spacers)
     // and muted secondary text — Material's "calm document" guidance.
     const builder = CardService.newCardBuilder()
-      .setName('Access Manager & Bulk RevokeMain_' + activeSection);
+      .setName('AccessAuditMain_' + activeSection);
 
     const section = CardService.newCardSection();
     appendFileHero(section, file);
@@ -73,14 +73,14 @@ const Cards = (function () {
    */
   function buildHomepageCard(state) {
     state = state || {};
-    // No CardHeader: the Drive side panel already shows "Access Manager & Bulk Revoke"
+    // No CardHeader: the Drive side panel already shows "Access Audit & Revoke for Drive"
     // in its system chrome. A second title/icon inside the card body
     // would be pure redundancy.
     //
     // Homepage's only mission: explain the tool. Bulk cleanup lives in
     // its own pushed card, accessed via the fixed-footer CTA below.
     const builder = CardService.newCardBuilder()
-      .setName('Access Manager & Bulk RevokeHome');
+      .setName('AccessAuditHome');
 
     CleanupCard.addHomepageHeroSections(builder);
     builder.setFixedFooter(CleanupCard.buildHomepageFooter());
@@ -100,7 +100,7 @@ const Cards = (function () {
     // system back arrow makes the navigation context obvious. Adding
     // a header would only repeat what the user already knows.
     const builder = CardService.newCardBuilder()
-      .setName('Access Manager & Bulk RevokeBulk');
+      .setName('AccessAuditBulk');
 
     CleanupCard.addBulkCleanupSections(builder, state);
 
@@ -127,11 +127,11 @@ const Cards = (function () {
         .setHorizontalAlignment(CardService.HorizontalAlignment.CENTER)
         .addWidget(CardService.newImage()
           .setImageUrl(ADD_ON_LOGO_URL)
-          .setAltText('Access Manager & Bulk Revoke')))
+          .setAltText('Access Audit & Revoke for Drive')))
       .setWrapStyle(CardService.WrapStyle.WRAP));
 
     section.addWidget(CardService.newTextParagraph()
-      .setText('<b>Access Manager & Bulk Revoke</b>'));
+      .setText('<b>Access Audit & Revoke for Drive</b>'));
 
     section.addWidget(CardService.newTextParagraph()
       .setText(message));
@@ -166,7 +166,7 @@ const Cards = (function () {
    */
   function buildErrorCard(err) {
     const card = CardService.newCardBuilder()
-      .setName('Access Manager & Bulk RevokeError');
+      .setName('AccessAuditError');
 
     const section = CardService.newCardSection();
     section.addWidget(CardService.newDecoratedText()
@@ -179,7 +179,7 @@ const Cards = (function () {
       .setText(Formatters.escapeHtml(Formatters.friendlyError(err))));
 
     section.addWidget(CardService.newTextParagraph()
-      .setText('<font color="' + Formatters.COLORS.muted + '">If this keeps happening, try reopening Access Manager & Bulk Revoke or selecting the file again.</font>'));
+      .setText('<font color="' + Formatters.COLORS.muted + '">If this keeps happening, try reopening Access Audit & Revoke for Drive or selecting the file again.</font>'));
 
     card.addSection(section);
     return card.build();

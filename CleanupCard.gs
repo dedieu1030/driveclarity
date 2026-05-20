@@ -1,7 +1,7 @@
 /**
  * CleanupCard.gs — Drive homepage: user-centric cleanup workflow.
  *
- * This module powers the Access Manager & Bulk Revoke homepage card (no file selected).
+ * This module powers the Access Audit & Revoke homepage card (no file selected).
  * The flow is intentionally user-centric: the user is searched first, then
  * all permissions they have on files owned by the current user are listed
  * and can be bulk-revoked.
@@ -46,7 +46,7 @@ const CleanupCard = (function () {
     // Image d'accueil (façon Canva)
     main.addWidget(CardService.newImage()
       .setImageUrl(HERO_IMAGE_URL)
-      .setAltText('Access Manager & Bulk Revoke'));
+      .setAltText('Access Audit & Revoke for Drive'));
       
     appendHowItWorks(main);
     appendSpacer(main);

@@ -321,7 +321,7 @@ const AuditCard = (function () {
     var csv = isFolder ? exportFolder(root, stamp) : exportSingleFile(root);
 
     var file = DriveApp.createFile(
-      'Access Manager & Bulk Revoke_audit_' + stamp + '.csv',
+      'Access Audit & Revoke_audit_' + stamp + '.csv',
       csv,
       MimeType.CSV
     );
