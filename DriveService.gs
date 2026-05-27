@@ -99,18 +99,22 @@ const DriveService = (function () {
     });
   }
 
-  function listChildren(parentId, pageSize) {
-    if (DEMO_MODE) return [];
+  function listChildren(parentId, pageSize, pageToken) {
+    if (DEMO_MODE) return { files: [], nextPageToken: null };
     pageSize = pageSize || 25;
     const res = Drive.Files.list({
       q: "'" + parentId + "' in parents and trashed = false",
       fields: 'files(' + FILE_FIELDS + '),nextPageToken',
       pageSize: pageSize,
+      pageToken: pageToken || undefined,
       includeItemsFromAllDrives: true,
       supportsAllDrives: true,
       corpora: 'allDrives'
     });
-    return res.files || [];
+    return {
+      files: res.files || [],
+      nextPageToken: res.nextPageToken || null
+    };
   }
 
   function listMyOwnedFiles(pageSize, pageToken) {
@@ -249,6 +253,7 @@ const DriveService = (function () {
     deletePermission: deletePermission,
     getSharedDrive: getSharedDrive,
     getCurrentUserEmail: getCurrentUserEmail,
-    getCurrentUserDomain: getCurrentUserDomain
+    getCurrentUserDomain: getCurrentUserDomain,
+    isDemoMode: function () { return DEMO_MODE; }
   };
 })();

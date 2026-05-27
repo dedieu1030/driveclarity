@@ -15,7 +15,10 @@
 const AuditCard = (function () {
 
   const FILTERS = ['public', 'external', 'shared_drive', 'inherited', 'direct'];
-  const MAX_AUDIT_FILES = 25;
+
+  function getMaxAuditFiles() {
+    return Subscription.isActive() ? 100 : 25;
+  }
 
   /**
    * Append Audit content to an existing section so the parent card
@@ -33,7 +36,10 @@ const AuditCard = (function () {
       appendSpacer(section);
       appendFilters(section, file.id, activeFilters);
 
-      const investigations = buildInvestigations(file, activeFilters);
+      const res = buildInvestigations(file, activeFilters, state.pageToken);
+      const investigations = res.items;
+      const nextPageToken = res.nextPageToken;
+
       if (investigations.length === 0) {
         appendSpacer(section);
         section.addWidget(CardService.newTextParagraph()
@@ -44,6 +50,48 @@ const AuditCard = (function () {
         investigations.forEach(function (inv) {
           appendInvestigationRow(section, file.id, inv);
         });
+      }
+
+      if (nextPageToken || state.history) {
+        appendSpacer(section);
+        const buttonSet = CardService.newButtonSet();
+
+        if (state.history) {
+          const parts = (state.history || '').split(',');
+          const prevPageToken = parts.pop();
+          const newHistory = parts.join(',');
+
+          buttonSet.addButton(CardService.newTextButton()
+            .setText('⬅️ Previous 100')
+            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+            .setOnClickAction(CardService.newAction()
+              .setFunctionName('actionChangeAuditPage')
+              .setParameters({
+                fileId: file.id,
+                pageToken: prevPageToken,
+                history: newHistory,
+                activeFilters: state.activeFilters || ''
+              })));
+        }
+
+        if (nextPageToken) {
+          const newHistory = state.history ? state.history + ',' + (state.pageToken || '') : (state.pageToken || '');
+
+          buttonSet.addButton(CardService.newTextButton()
+            .setText('Next 100 ➡️')
+            .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+            .setBackgroundColor(Formatters.COLORS.brand)
+            .setOnClickAction(CardService.newAction()
+              .setFunctionName('actionChangeAuditPage')
+              .setParameters({
+                fileId: file.id,
+                pageToken: nextPageToken,
+                history: newHistory,
+                activeFilters: state.activeFilters || ''
+              })));
+        }
+
+        section.addWidget(buttonSet);
       }
     } else {
       // Single file — show permissions directly, no filters needed.
@@ -189,20 +237,24 @@ const AuditCard = (function () {
 
   // ─── Investigation rows ────────────────────────────────────────────────
 
-  function buildInvestigations(file, activeFilters) {
+  function buildInvestigations(file, activeFilters, pageToken) {
     const isFolder = file.mimeType === 'application/vnd.google-apps.folder';
     let candidates = [file];
+    let nextPageToken = null;
 
     if (isFolder) {
       try {
-        const children = DriveService.listChildren(file.id, MAX_AUDIT_FILES);
-        candidates = [file].concat(children).slice(0, MAX_AUDIT_FILES);
+        const limit = getMaxAuditFiles();
+        const res = DriveService.listChildren(file.id, limit, pageToken);
+        const children = res.files;
+        nextPageToken = res.nextPageToken;
+        candidates = [file].concat(children).slice(0, limit);
       } catch (e) {
         // Fall back to single-item audit on error.
       }
     }
 
-    return candidates
+    const filtered = candidates
       .map(function (f) {
         const sig = PermissionAnalyzer.auditSignals(f);
         return { file: f, sig: sig };
@@ -211,6 +263,11 @@ const AuditCard = (function () {
         if (activeFilters.length === 0) return true;
         return activeFilters.some(function (f) { return matchesFilter(f, item); });
       });
+
+    return {
+      items: filtered,
+      nextPageToken: nextPageToken
+    };
   }
 
   function matchesFilter(filter, item) {
@@ -367,7 +424,9 @@ const AuditCard = (function () {
    * Folder: one row per person per file (standard multi-file audit).
    */
   function exportFolder(root) {
-    var items = [root].concat(DriveService.listChildren(root.id, MAX_AUDIT_FILES));
+    var limit = getMaxAuditFiles();
+    var res = DriveService.listChildren(root.id, limit);
+    var items = [root].concat(res.files);
     var rows = [['File name', 'File type', 'Visibility', 'Person', 'Email', 'Role', 'Access type']];
 
     items.forEach(function (f) {

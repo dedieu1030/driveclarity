@@ -57,14 +57,6 @@ function actionSwitchSection(e) {
  * back arrow returns the user to the file's Access view.
  */
 function actionShowExplanations(e) {
-  if (!Subscription.isActive()) {
-    if (!QuotaService.canAccessFreeFeature()) {
-      return CardService.newActionResponseBuilder()
-        .setNavigation(CardService.newNavigation().pushCard(PaywallCard.build(false, 'limit')))
-        .build();
-    }
-    QuotaService.consumeCredit();
-  }
   const params = (e && e.commonEventObject && e.commonEventObject.parameters) || {};
   const card = AccessCard.buildExplanationCard(params.fileId);
   return CardService.newActionResponseBuilder()
@@ -131,7 +123,28 @@ function actionToggleAuditFilter(e) {
   } else {
     current.splice(idx, 1);
   }
-  const card = Cards.buildMainCard(fileId, 'audit', { activeFilters: current.join(',') });
+  const card = Cards.buildMainCard(fileId, 'audit', { activeFilters: current.join(','), pageToken: '', history: '' });
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().updateCard(card))
+    .build();
+}
+
+/**
+ * Handle page change in Audit tab.
+ */
+function actionChangeAuditPage(e) {
+  const params = e.commonEventObject.parameters || {};
+  const fileId = params.fileId;
+  const pageToken = params.pageToken || '';
+  const history = params.history || '';
+  const activeFilters = params.activeFilters || '';
+
+  const card = Cards.buildMainCard(fileId, 'audit', {
+    pageToken: pageToken,
+    history: history,
+    activeFilters: activeFilters
+  });
+
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().updateCard(card))
     .build();
@@ -189,14 +202,6 @@ function actionPopCard(e) {
 }
 
 function actionOpenBulkCleanup(e) {
-  if (!Subscription.isActive()) {
-    if (!QuotaService.canAccessFreeFeature()) {
-      return CardService.newActionResponseBuilder()
-        .setNavigation(CardService.newNavigation().pushCard(PaywallCard.build(false, 'limit')))
-        .build();
-    }
-    QuotaService.consumeCredit();
-  }
   const card = Cards.buildBulkCleanupCard({});
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().pushCard(card))
@@ -227,7 +232,11 @@ function actionOpenSubscription(e) {
 }
 
 function actionRunCleanupSearch(e) {
-  if (!Subscription.isActive()) {
+  const formInputs = (e.commonEventObject && e.commonEventObject.formInputs) || {};
+  const target = ((formInputs.cleanup_search && formInputs.cleanup_search.stringInputs.value[0]) || '').trim();
+
+  const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target);
+  if (isEmail && !Subscription.isActive()) {
     if (!QuotaService.canAccessFreeFeature()) {
       return CardService.newActionResponseBuilder()
         .setNavigation(CardService.newNavigation().pushCard(PaywallCard.build(false, 'limit')))
@@ -235,9 +244,8 @@ function actionRunCleanupSearch(e) {
     }
     QuotaService.consumeCredit();
   }
-  const formInputs = (e.commonEventObject && e.commonEventObject.formInputs) || {};
-  const target = (formInputs.cleanup_search && formInputs.cleanup_search.stringInputs.value[0]) || '';
-  const card = Cards.buildBulkCleanupCard({ cleanupTarget: target.trim() });
+
+  const card = Cards.buildBulkCleanupCard({ cleanupTarget: target, pageToken: '', history: '' });
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().updateCard(card))
     .build();
@@ -255,7 +263,9 @@ function actionToggleCleanupItem(e) {
   }
   const card = Cards.buildBulkCleanupCard({
     cleanupTarget: cleanupTarget,
-    cleanupSelected: Array.from(selected).join(',')
+    cleanupSelected: Array.from(selected).join(','),
+    pageToken: params.pageToken || '',
+    history: params.history || ''
   });
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().updateCard(card))
@@ -266,7 +276,9 @@ function actionSelectAllCleanup(e) {
   const params = e.commonEventObject.parameters || {};
   const card = Cards.buildBulkCleanupCard({
     cleanupTarget: params.cleanupTarget || '',
-    cleanupSelected: params.allItems || ''
+    cleanupSelected: params.allItems || '',
+    pageToken: params.pageToken || '',
+    history: params.history || ''
   });
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().updateCard(card))
@@ -277,8 +289,32 @@ function actionClearCleanupSelection(e) {
   const params = e.commonEventObject.parameters || {};
   const card = Cards.buildBulkCleanupCard({
     cleanupTarget: params.cleanupTarget || '',
-    cleanupSelected: ''
+    cleanupSelected: '',
+    pageToken: params.pageToken || '',
+    history: params.history || ''
   });
+  return CardService.newActionResponseBuilder()
+    .setNavigation(CardService.newNavigation().updateCard(card))
+    .build();
+}
+
+/**
+ * Handle page change in Bulk Cleanup tab.
+ */
+function actionChangeCleanupPage(e) {
+  const params = e.commonEventObject.parameters || {};
+  const target = params.cleanupTarget;
+  const pageToken = params.pageToken || '';
+  const history = params.history || '';
+  const cleanupSelected = params.cleanupSelected || '';
+
+  const card = Cards.buildBulkCleanupCard({
+    cleanupTarget: target,
+    pageToken: pageToken,
+    history: history,
+    cleanupSelected: cleanupSelected
+  });
+
   return CardService.newActionResponseBuilder()
     .setNavigation(CardService.newNavigation().updateCard(card))
     .build();

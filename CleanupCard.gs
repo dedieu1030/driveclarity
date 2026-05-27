@@ -105,13 +105,58 @@ const CleanupCard = (function () {
     appendSearch(main, state);
 
     if (state.cleanupTarget) {
-      const matches = findFilesAccessibleBy(state.cleanupTarget);
+      const res = findFilesAccessibleBy(state.cleanupTarget, state.pageToken);
+      const matches = res.matches;
+      const nextPageToken = res.nextPageToken;
+
       appendSpacer(main);
-      appendResultsSummary(main, state.cleanupTarget, matches);
+      appendResultsSummary(main, state, matches);
 
       if (matches.length > 0) {
         appendSpacer(main);
         appendResultsList(main, state, matches);
+      }
+
+      if (nextPageToken || state.history) {
+        appendSpacer(main);
+        const buttonSet = CardService.newButtonSet();
+
+        if (state.history) {
+          const parts = (state.history || '').split(',');
+          const prevPageToken = parts.pop();
+          const newHistory = parts.join(',');
+
+          buttonSet.addButton(CardService.newTextButton()
+            .setText('⬅️ Previous 100')
+            .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
+            .setOnClickAction(CardService.newAction()
+              .setFunctionName('actionChangeCleanupPage')
+              .setParameters({
+                cleanupTarget: state.cleanupTarget,
+                pageToken: prevPageToken,
+                history: newHistory,
+                cleanupSelected: state.cleanupSelected || ''
+              })));
+        }
+
+        if (nextPageToken) {
+          const newHistory = state.history ? state.history + ',' + (state.pageToken || '') : (state.pageToken || '');
+
+          buttonSet.addButton(CardService.newTextButton()
+            .setText('Next 100 ➡️')
+            .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
+            .setBackgroundColor(Formatters.COLORS.brand)
+            .setOnClickAction(CardService.newAction()
+              .setFunctionName('actionChangeCleanupPage')
+              .setParameters({
+                cleanupTarget: state.cleanupTarget,
+                pageToken: nextPageToken,
+                history: newHistory,
+                cleanupSelected: state.cleanupSelected || ''
+              })));
+        }
+
+        main.addWidget(buttonSet);
       }
     } else {
       appendSpacer(main);
@@ -144,7 +189,8 @@ const CleanupCard = (function () {
 
   // ─── Results summary ───────────────────────────────────────────────────
 
-  function appendResultsSummary(section, target, matches) {
+  function appendResultsSummary(section, state, matches) {
+    const target = state.cleanupTarget;
     if (matches.length === 0) {
       const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target);
       const hint = isEmail
@@ -185,14 +231,20 @@ const CleanupCard = (function () {
           .setFunctionName('actionSelectAllCleanup')
           .setParameters({
             cleanupTarget: target,
-            allItems: matches.map(function (m) { return m.fileId + ':' + m.permissionId; }).join(',')
+            allItems: matches.map(function (m) { return m.fileId + ':' + m.permissionId; }).join(','),
+            pageToken: state.pageToken || '',
+            history: state.history || ''
           })))
       .addButton(CardService.newTextButton()
         .setText('Clear')
         .setTextButtonStyle(CardService.TextButtonStyle.OUTLINED)
         .setOnClickAction(CardService.newAction()
           .setFunctionName('actionClearCleanupSelection')
-          .setParameters({ cleanupTarget: target }))));
+          .setParameters({
+            cleanupTarget: target,
+            pageToken: state.pageToken || '',
+            history: state.history || ''
+          }))));
   }
 
   // ─── Results list ──────────────────────────────────────────────────────
@@ -214,7 +266,9 @@ const CleanupCard = (function () {
           .setParameters({
             itemId: itemKey,
             cleanupTarget: state.cleanupTarget,
-            selected: state.cleanupSelected || ''
+            selected: state.cleanupSelected || '',
+            pageToken: state.pageToken || '',
+            history: state.history || ''
           }));
 
       section.addWidget(CardService.newDecoratedText()
@@ -438,10 +492,10 @@ const CleanupCard = (function () {
    *
    * Returns: [{ fileId, fileName, iconLink, permissionId, role, source }]
    */
-  function findFilesAccessibleBy(target) {
+  function findFilesAccessibleBy(target, pageToken) {
     target = (target || '').trim();
-    if (!target || !looksLikeEmail(target)) return [];
-    return findByEmail(target.toLowerCase());
+    if (!target || !looksLikeEmail(target)) return { matches: [], nextPageToken: null };
+    return findByEmail(target.toLowerCase(), pageToken);
   }
 
   function looksLikeEmail(s) {
@@ -456,62 +510,55 @@ const CleanupCard = (function () {
    * but we then filter on `permission.emailAddress === email` to keep only
    * direct user permissions (the only ones we can revoke at the file level).
    */
-  function findByEmail(email) {
+  function findByEmail(email, startPageToken) {
     const matches = [];
     const safeEmail = email.replace(/'/g, "\\'");
     const q = "('" + safeEmail + "' in writers or '" + safeEmail + "' in readers) and trashed = false";
 
-    let pageToken = null;
-    let safety = 0;
-    let processed = 0;
+    let res;
+    try {
+      res = Drive.Files.list({
+        q: q,
+        fields: 'files(id,name,iconLink,driveId),nextPageToken',
+        pageSize: 100,
+        pageToken: startPageToken || undefined,
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+        corpora: 'allDrives'
+      });
+    } catch (e) {
+      return { matches: [], nextPageToken: null };
+    }
 
-    do {
-      let res;
-      try {
-        res = Drive.Files.list({
-          q: q,
-          fields: 'files(id,name,iconLink,driveId),nextPageToken',
-          pageSize: 100,
-          pageToken: pageToken || undefined,
-          supportsAllDrives: true,
-          includeItemsFromAllDrives: true,
-          corpora: 'allDrives'
-        });
-      } catch (e) {
-        break;
-      }
+    const files = res.files || [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
 
-      const files = res.files || [];
-      for (let i = 0; i < files.length && processed < FAST_PATH_CAP; i++) {
-        const f = files[i];
-        processed++;
+      let perms;
+      try { perms = DriveService.listPermissions(f.id); }
+      catch (e) { continue; }
 
-        let perms;
-        try { perms = DriveService.listPermissions(f.id); }
-        catch (e) { continue; }
+      perms.forEach(function (p) {
+        if (p.deleted || p.role === 'owner') return;
+        if ((p.emailAddress || '').toLowerCase() === email) {
+          matches.push({
+            fileId: f.id,
+            fileName: f.name,
+            iconLink: f.iconLink,
+            permissionId: p.id,
+            role: p.role,
+            source: PermissionAnalyzer.classifySource(p),
+            displayName: p.displayName || '',
+            photoLink: p.photoLink || ''
+          });
+        }
+      });
+    }
 
-        perms.forEach(function (p) {
-          if (p.deleted || p.role === 'owner') return;
-          if ((p.emailAddress || '').toLowerCase() === email) {
-            matches.push({
-              fileId: f.id,
-              fileName: f.name,
-              iconLink: f.iconLink,
-              permissionId: p.id,
-              role: p.role,
-              source: PermissionAnalyzer.classifySource(p),
-              displayName: p.displayName || '',
-              photoLink: p.photoLink || ''
-            });
-          }
-        });
-      }
-
-      pageToken = res.nextPageToken;
-      safety++;
-    } while (pageToken && safety < 10 && processed < FAST_PATH_CAP);
-
-    return matches;
+    return {
+      matches: matches,
+      nextPageToken: res.nextPageToken || null
+    };
   }
 
   return {
