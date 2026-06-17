@@ -182,7 +182,8 @@ Logs land in **Apps Script editor → Executions** (Stackdriver-backed because o
 1. Brand verification (~1 week)
 2. OAuth app verification — sensitive scopes (~2–4 weeks)
 3. OAuth app verification — restricted scopes (~4–8 weeks)
-4. (Conditional) CASA security assessment for `drive` scope if data is stored outside Apps Script — **not applicable here** because DriveClarity stores nothing outside the user's Google environment
+4. CASA Security Assessment (Level 2) — **Required** because the application requests restricted scopes (`drive` and `drive.readonly`) for public distribution, even though files are processed within the user's Google environment.
+
 
 See the official [Workspace Marketplace publishing guide](https://developers.google.com/workspace/marketplace/how-to-publish).
 
